@@ -358,13 +358,17 @@ namespace RipLogViewer
                                     "{{\"startTime\":\"{0}\",\"endTime\":\"{1}\",\"mode\":\"{2}\",\"width\":{3},\"length\":{4},\"completed\":{5},\"productionRatio\":{6},\"localImagePath\":\"{7}\"}}",
                                     tfStart, tfEnd, HttpUtility.JavaScriptStringEncode(tfMode), tfW, tfL, tfCompleted, tfProd, HttpUtility.JavaScriptStringEncode(tfImgPath)) : "null";
 
-                                jsonResult = string.Format(CultureInfo.InvariantCulture,
-                                    "{{\"machineName\":\"{0}\",\"fileName\":\"{1}\",\"state\":\"{2}\",\"startTime\":\"{3}\",\"width\":{4},\"length\":{5},\"copias\":{6},\"txtLog\":{7},\"tfTask\":{8}}}",
-                                    HttpUtility.JavaScriptStringEncode(machineName),
-                                    HttpUtility.JavaScriptStringEncode(ripFileName),
-                                    HttpUtility.JavaScriptStringEncode(ripState),
-                                    ripStartTime, ripWidth, ripLength, ripCopias,
-                                    txtJson, tfJson);
+                                jsonResult = "{"
+                                    + "\"machineName\":\"" + HttpUtility.JavaScriptStringEncode(machineName) + "\","
+                                    + "\"fileName\":\"" + HttpUtility.JavaScriptStringEncode(ripFileName) + "\","
+                                    + "\"state\":\"" + HttpUtility.JavaScriptStringEncode(ripState) + "\","
+                                    + "\"startTime\":\"" + HttpUtility.JavaScriptStringEncode(ripStartTime) + "\","
+                                    + "\"width\":" + ripWidth.ToString(CultureInfo.InvariantCulture) + ","
+                                    + "\"length\":" + ripLength.ToString(CultureInfo.InvariantCulture) + ","
+                                    + "\"copias\":" + ripCopias + ","
+                                    + "\"txtLog\":" + txtJson + ","
+                                    + "\"tfTask\":" + tfJson
+                                    + "}";
                             }
                         }
                         catch (Exception ex)
@@ -434,14 +438,16 @@ namespace RipLogViewer
                                                 }
                                             }
 
-                                            jsonList.Add(string.Format(CultureInfo.InvariantCulture,
-                                                "{{\"fileName\":\"{0}\",\"state\":\"{1}\",\"startTime\":\"{2}\",\"width\":{3},\"length\":{4},\"copias\":{5},\"machineName\":\"{6}\",\"txtLog\":{7}}}",
-                                                HttpUtility.JavaScriptStringEncode(fn),
-                                                HttpUtility.JavaScriptStringEncode(state),
-                                                st, w, l, copias,
-                                                HttpUtility.JavaScriptStringEncode(machineName),
-                                                txtJson
-                                            ));
+                                            jsonList.Add("{"
+                                                + "\"fileName\":\"" + HttpUtility.JavaScriptStringEncode(fn) + "\","
+                                                + "\"state\":\"" + HttpUtility.JavaScriptStringEncode(state) + "\","
+                                                + "\"startTime\":\"" + HttpUtility.JavaScriptStringEncode(st) + "\","
+                                                + "\"width\":" + w.ToString(CultureInfo.InvariantCulture) + ","
+                                                + "\"length\":" + l.ToString(CultureInfo.InvariantCulture) + ","
+                                                + "\"copias\":" + copias + ","
+                                                + "\"machineName\":\"" + HttpUtility.JavaScriptStringEncode(machineName) + "\","
+                                                + "\"txtLog\":" + txtJson
+                                                + "}");
                                         }
                                     }
                                 }
