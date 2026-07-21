@@ -336,7 +336,7 @@ namespace RipLogViewer
                                 using (var cmd = new SQLiteCommand(tfSql, conn))
                                 {
                                     cmd.Parameters.AddWithValue("@fn", "%" + cleanName + "%");
-                                    if (!string.IsNullOrEmpty(datePrefix)) tfSql += " AND StartTime LIKE @dp";
+                                    if (!string.IsNullOrEmpty(datePrefix)) cmd.Parameters.AddWithValue("@dp", datePrefix + "%");
                                     using (var r = cmd.ExecuteReader())
                                     {
                                         if (r.Read())
