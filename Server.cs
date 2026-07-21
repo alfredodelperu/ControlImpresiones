@@ -270,7 +270,7 @@ namespace RipLogViewer
 
                                 using (var cmd = new SQLiteCommand("SELECT * FROM riplog WHERE FileName LIKE @fn ORDER BY StartTime DESC LIMIT 1", conn))
                                 {
-                                    cmd.Parameters.AddWithValue("@fn", "%" + cleanName + "%");
+                                    cmd.Parameters.Add(new SQLiteParameter("@fn", "%" + cleanName + "%"));
                                     using (var r = cmd.ExecuteReader())
                                     {
                                         if (r.Read())
@@ -293,7 +293,7 @@ namespace RipLogViewer
 
                                 using (var cmd = new SQLiteCommand("SELECT * FROM logtxt WHERE JobName LIKE @fn ORDER BY StartTime DESC LIMIT 1", conn))
                                 {
-                                    cmd.Parameters.AddWithValue("@fn", "%" + cleanName + "%");
+                                    cmd.Parameters.Add(new SQLiteParameter("@fn", "%" + cleanName + "%"));
                                     using (var r = cmd.ExecuteReader())
                                     {
                                         if (r.Read())
@@ -321,7 +321,7 @@ namespace RipLogViewer
 
                                 using (var cmd = new SQLiteCommand("SELECT * FROM historialtf WHERE JobName LIKE @fn ORDER BY StartTime DESC LIMIT 1", conn))
                                 {
-                                    cmd.Parameters.AddWithValue("@fn", "%" + cleanName + "%");
+                                    cmd.Parameters.Add(new SQLiteParameter("@fn", "%" + cleanName + "%"));
                                     using (var r = cmd.ExecuteReader())
                                     {
                                         if (r.Read())
@@ -358,7 +358,7 @@ namespace RipLogViewer
                         }
                         catch (Exception ex)
                         {
-                            jsonResult = string.Format("{{\"error\":\"{0}\"}}", HttpUtility.JavaScriptStringEncode(ex.Message));
+                            jsonResult = string.Format("{{\"error\":\"{0}\"}}", HttpUtility.JavaScriptStringEncode(ex.ToString()));
                         }
                     }
 
