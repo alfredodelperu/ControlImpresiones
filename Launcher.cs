@@ -122,7 +122,13 @@ namespace PrintServerLauncher
                             }
 
                             // Evitar sobreescribir config.txt si ya existe para no borrar las rutas del cliente
-                            if (entry.Name.ToLower() == "config.txt" && File.Exists(destinationPath))
+                            if (entry.Name.Equals("config.txt", StringComparison.OrdinalIgnoreCase) && File.Exists(destinationPath))
+                            {
+                                continue;
+                            }
+
+                            // Evitar sobreescribir Launcher.exe mientras se encuentra en ejecución
+                            if (entry.Name.Equals("launcher.exe", StringComparison.OrdinalIgnoreCase))
                             {
                                 continue;
                             }
