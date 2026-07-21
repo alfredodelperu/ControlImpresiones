@@ -291,19 +291,14 @@ namespace RipLogViewer
                                 }
 
                                 // 2. TXT Log
-                                string txtSql = "SELECT * FROM logtxt WHERE JobName LIKE @fn";
-                                if (!string.IsNullOrEmpty(datePrefix)) txtSql += " AND StartTime LIKE @dp";
-                                txtSql += " ORDER BY StartTime DESC LIMIT 1";
-
                                 bool hasTxt = false;
                                 string txtStart = "", txtEnd = "", txtMode = "";
                                 double txtW = 0, txtL = 0, txtProd = 0;
                                 int txtCopies = 1, txtCompleted = 0, txtTPass = 0, txtMPass = 0;
 
-                                using (var cmd = new SQLiteCommand(txtSql, conn))
+                                using (var cmd = new SQLiteCommand("SELECT * FROM logtxt WHERE JobName LIKE @fn ORDER BY StartTime DESC LIMIT 1", conn))
                                 {
                                     cmd.Parameters.AddWithValue("@fn", "%" + cleanName + "%");
-                                    if (!string.IsNullOrEmpty(datePrefix)) cmd.Parameters.AddWithValue("@dp", datePrefix + "%");
                                     using (var r = cmd.ExecuteReader())
                                     {
                                         if (r.Read())
@@ -324,19 +319,14 @@ namespace RipLogViewer
                                 }
 
                                 // 3. TF Task
-                                string tfSql = "SELECT * FROM historialtf WHERE JobName LIKE @fn";
-                                if (!string.IsNullOrEmpty(datePrefix)) tfSql += " AND StartTime LIKE @dp";
-                                tfSql += " ORDER BY StartTime DESC LIMIT 1";
-
                                 bool hasTf = false;
                                 string tfStart = "", tfEnd = "", tfMode = "", tfImgPath = "";
                                 double tfW = 0, tfL = 0, tfProd = 0;
                                 int tfCompleted = 0;
 
-                                using (var cmd = new SQLiteCommand(tfSql, conn))
+                                using (var cmd = new SQLiteCommand("SELECT * FROM historialtf WHERE JobName LIKE @fn ORDER BY StartTime DESC LIMIT 1", conn))
                                 {
                                     cmd.Parameters.AddWithValue("@fn", "%" + cleanName + "%");
-                                    if (!string.IsNullOrEmpty(datePrefix)) cmd.Parameters.AddWithValue("@dp", datePrefix + "%");
                                     using (var r = cmd.ExecuteReader())
                                     {
                                         if (r.Read())
