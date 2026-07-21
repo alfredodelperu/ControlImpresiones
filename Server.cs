@@ -265,17 +265,12 @@ namespace RipLogViewer
                                 string datePrefix = !string.IsNullOrWhiteSpace(starttime) && starttime.Length >= 10 ? starttime.Substring(0, 10).Replace("-", "/").Replace("/", "-") : "";
 
                                 // 1. RIPLOG
-                                string ripSql = "SELECT * FROM riplog WHERE FileName LIKE @fn";
-                                if (!string.IsNullOrEmpty(starttime)) ripSql += " AND StartTime LIKE @st";
-                                ripSql += " LIMIT 1";
-
                                 string ripFileName = cleanName, ripState = "PRINT", ripStartTime = starttime ?? "";
                                 double ripWidth = 0, ripLength = 0; int ripCopias = 1;
 
-                                using (var cmd = new SQLiteCommand(ripSql, conn))
+                                using (var cmd = new SQLiteCommand("SELECT * FROM riplog WHERE FileName LIKE @fn ORDER BY StartTime DESC LIMIT 1", conn))
                                 {
                                     cmd.Parameters.AddWithValue("@fn", "%" + cleanName + "%");
-                                    if (!string.IsNullOrEmpty(starttime)) cmd.Parameters.AddWithValue("@st", starttime + "%");
                                     using (var r = cmd.ExecuteReader())
                                     {
                                         if (r.Read())
