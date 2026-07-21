@@ -1333,7 +1333,7 @@ namespace RipLogViewer
     {
         public static readonly string dbPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "impresiones.db");
         public static readonly string imgCacheDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "img_cache");
-        public static readonly string connectionString = "Data Source=" + dbPath + ";Version=3;DateTimeFormat=String;";
+        public static readonly string connectionString = "Data Source=" + dbPath + ";Version=3;";
 
         public static void InitializeDatabase()
         {
