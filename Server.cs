@@ -395,7 +395,6 @@ namespace RipLogViewer
                                     + "\"width\":" + ripWidth.ToString(CultureInfo.InvariantCulture) + ","
                                     + "\"length\":" + ripLength.ToString(CultureInfo.InvariantCulture) + ","
                                     + "\"copias\":" + ripCopias + ","
-                                    + "\"debugLog\":\"" + HttpUtility.JavaScriptStringEncode(debugLog) + "\","
                                     + "\"txtLog\":" + txtJson + ","
                                     + "\"tfTask\":" + tfJson
                                     + "}";
@@ -403,7 +402,7 @@ namespace RipLogViewer
                         }
                         catch (Exception ex)
                         {
-                            jsonResult = "{\"error\":\"" + HttpUtility.JavaScriptStringEncode(ex.Message) + "\",\"stackTrace\":\"" + HttpUtility.JavaScriptStringEncode(ex.StackTrace ?? "") + "\"}";
+                            jsonResult = "{\"error\":\"" + HttpUtility.JavaScriptStringEncode(ex.Message) + "\"}";
                         }
                     }
 
