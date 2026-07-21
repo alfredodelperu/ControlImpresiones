@@ -116,7 +116,7 @@
 <body>
     <div class="container">
         <header>
-            <h1><span>Control</span> de Impresiones (Base de Datos)</h1>
+            <h1 id="main-header-title"><span>Control</span> de Impresiones <span id="machine-name-tag" style="color: var(--accent); margin-left: 5px;"></span></h1>
             <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                 <a href="/printexp.html" class="nav-link">Historial PrintExp</a>
                 <a href="/printlog.html" class="nav-link">Logs .TXT</a>
@@ -331,6 +331,13 @@
 
                 const payload = await response.json();
                 const data = payload.logJobs || [];
+
+                const selectedMachine = document.getElementById('fi-machine').value;
+                const activeMachine = selectedMachine || payload.machineName || '';
+                const machineTag = document.getElementById('machine-name-tag');
+                if (machineTag) {
+                    machineTag.textContent = activeMachine ? activeMachine : '';
+                }
                 
                 let totalML = 0;
                 let totalM2 = 0;
