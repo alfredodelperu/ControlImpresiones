@@ -270,8 +270,8 @@ namespace RipLogViewer
                                 string ripFileName = cleanName, ripState = "PRINT", ripStartTime = starttime ?? "";
                                 double ripWidth = 0, ripLength = 0; int ripCopias = 1;
 
-                                try
-                                {
+                                string debugLog = "";
+                                try {
                                     using (var cmd = new SQLiteCommand("SELECT * FROM riplog WHERE FileName LIKE '%" + safeName + "%' ORDER BY StartTime DESC LIMIT 1", conn))
                                     {
                                         using (var r = cmd.ExecuteReader())
@@ -287,8 +287,8 @@ namespace RipLogViewer
                                             }
                                         }
                                     }
-                                }
-                                catch (Exception exRip) { Console.WriteLine("Subquery RIPLOG Err: " + exRip.Message); }
+                                    debugLog += "[RipLog OK] ";
+                                } catch (Exception ex1) { debugLog += "[RipLog Err: " + ex1.Message + "] "; }
 
                                 // 2. TXT Log
                                 bool hasTxt = false;
@@ -318,8 +318,9 @@ namespace RipLogViewer
                                             }
                                         }
                                     }
+                                    debugLog += "[TxtLog OK] ";
                                 }
-                                catch (Exception exTxt) { Console.WriteLine("Subquery TXT Err: " + exTxt.Message); }
+                                catch (Exception ex2) { debugLog += "[TxtLog Err: " + ex2.Message + "] "; }
 
                                 // 3. TF Task
                                 bool hasTf = false;
@@ -347,8 +348,9 @@ namespace RipLogViewer
                                             }
                                         }
                                     }
+                                    debugLog += "[TfTask OK] ";
                                 }
-                                catch (Exception exTf) { Console.WriteLine("Subquery TF Err: " + exTf.Message); }
+                                catch (Exception ex3) { debugLog += "[TfTask Err: " + ex3.Message + "] "; }
 
                                 string txtJson = hasTxt ? string.Format(CultureInfo.InvariantCulture,
                                     "{{\"startTime\":\"{0}\",\"endTime\":\"{1}\",\"mode\":\"{2}\",\"width\":{3},\"length\":{4},\"copies\":{5},\"completed\":{6},\"productionRatio\":{7},\"totalPass\":{8},\"maxPass\":{9}}}",
@@ -366,6 +368,7 @@ namespace RipLogViewer
                                     + "\"width\":" + ripWidth.ToString(CultureInfo.InvariantCulture) + ","
                                     + "\"length\":" + ripLength.ToString(CultureInfo.InvariantCulture) + ","
                                     + "\"copias\":" + ripCopias + ","
+                                    + "\"debugLog\":\"" + HttpUtility.JavaScriptStringEncode(debugLog) + "\","
                                     + "\"txtLog\":" + txtJson + ","
                                     + "\"tfTask\":" + tfJson
                                     + "}";
@@ -373,6 +376,7 @@ namespace RipLogViewer
                         }
                         catch (Exception ex)
                         {
+                            Console.WriteLine("DEBUG print_details caught: " + ex.ToString());
                             jsonResult = string.Format("{{\"error\":\"{0}\"}}", HttpUtility.JavaScriptStringEncode(ex.ToString()));
                         }
                     }
