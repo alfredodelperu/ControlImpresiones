@@ -270,21 +270,25 @@ namespace RipLogViewer
                                 string ripFileName = cleanName, ripState = "PRINT", ripStartTime = starttime ?? "";
                                 double ripWidth = 0, ripLength = 0; int ripCopias = 1;
 
-                                using (var cmd = new SQLiteCommand("SELECT * FROM riplog WHERE FileName LIKE '%" + safeName + "%' ORDER BY StartTime DESC LIMIT 1", conn))
+                                try
                                 {
-                                    using (var r = cmd.ExecuteReader())
+                                    using (var cmd = new SQLiteCommand("SELECT * FROM riplog WHERE FileName LIKE '%" + safeName + "%' ORDER BY StartTime DESC LIMIT 1", conn))
                                     {
-                                        if (r.Read())
+                                        using (var r = cmd.ExecuteReader())
                                         {
-                                            ripFileName = r["FileName"].ToString();
-                                            ripState = r["State"].ToString();
-                                            ripStartTime = r["StartTime"].ToString();
-                                            double.TryParse(r["Width"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out ripWidth);
-                                            double.TryParse(r["Length"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out ripLength);
-                                            try { if (r["Copias"] != DBNull.Value) ripCopias = Convert.ToInt32(r["Copias"]); } catch {}
+                                            if (r.Read())
+                                            {
+                                                ripFileName = r["FileName"].ToString();
+                                                ripState = r["State"].ToString();
+                                                ripStartTime = r["StartTime"].ToString();
+                                                double.TryParse(r["Width"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out ripWidth);
+                                                double.TryParse(r["Length"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out ripLength);
+                                                try { if (r["Copias"] != DBNull.Value) ripCopias = Convert.ToInt32(r["Copias"]); } catch {}
+                                            }
                                         }
                                     }
                                 }
+                                catch (Exception exRip) { Console.WriteLine("Subquery RIPLOG Err: " + exRip.Message); }
 
                                 // 2. TXT Log
                                 bool hasTxt = false;
@@ -292,26 +296,30 @@ namespace RipLogViewer
                                 double txtW = 0, txtL = 0, txtProd = 0;
                                 int txtCopies = 1, txtCompleted = 0, txtTPass = 0, txtMPass = 0;
 
-                                using (var cmd = new SQLiteCommand("SELECT * FROM logtxt WHERE JobName LIKE '%" + safeName + "%' ORDER BY StartTime DESC LIMIT 1", conn))
+                                try
                                 {
-                                    using (var r = cmd.ExecuteReader())
+                                    using (var cmd = new SQLiteCommand("SELECT * FROM logtxt WHERE JobName LIKE '%" + safeName + "%' ORDER BY StartTime DESC LIMIT 1", conn))
                                     {
-                                        if (r.Read())
+                                        using (var r = cmd.ExecuteReader())
                                         {
-                                            hasTxt = true;
-                                            txtStart = r["StartTime"].ToString();
-                                            txtEnd = r["EndTime"].ToString();
-                                            txtMode = r["Mode"].ToString();
-                                            double.TryParse(r["Width"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out txtW);
-                                            double.TryParse(r["Length"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out txtL);
-                                            double.TryParse(r["ProductionRatio"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out txtProd);
-                                            try { txtCopies = Convert.ToInt32(r["Copies"]); } catch {}
-                                            try { txtCompleted = Convert.ToInt32(r["Completed"]); } catch {}
-                                            try { txtTPass = Convert.ToInt32(r["TotalPass"]); } catch {}
-                                            try { txtMPass = Convert.ToInt32(r["MaxPass"]); } catch {}
+                                            if (r.Read())
+                                            {
+                                                hasTxt = true;
+                                                txtStart = r["StartTime"].ToString();
+                                                txtEnd = r["EndTime"].ToString();
+                                                txtMode = r["Mode"].ToString();
+                                                double.TryParse(r["Width"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out txtW);
+                                                double.TryParse(r["Length"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out txtL);
+                                                double.TryParse(r["ProductionRatio"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out txtProd);
+                                                try { txtCopies = Convert.ToInt32(r["Copies"]); } catch {}
+                                                try { txtCompleted = Convert.ToInt32(r["Completed"]); } catch {}
+                                                try { txtTPass = Convert.ToInt32(r["TotalPass"]); } catch {}
+                                                try { txtMPass = Convert.ToInt32(r["MaxPass"]); } catch {}
+                                            }
                                         }
                                     }
                                 }
+                                catch (Exception exTxt) { Console.WriteLine("Subquery TXT Err: " + exTxt.Message); }
 
                                 // 3. TF Task
                                 bool hasTf = false;
@@ -319,24 +327,28 @@ namespace RipLogViewer
                                 double tfW = 0, tfL = 0, tfProd = 0;
                                 int tfCompleted = 0;
 
-                                using (var cmd = new SQLiteCommand("SELECT * FROM historialtf WHERE JobName LIKE '%" + safeName + "%' ORDER BY StartTime DESC LIMIT 1", conn))
+                                try
                                 {
-                                    using (var r = cmd.ExecuteReader())
+                                    using (var cmd = new SQLiteCommand("SELECT * FROM historialtf WHERE JobName LIKE '%" + safeName + "%' ORDER BY StartTime DESC LIMIT 1", conn))
                                     {
-                                        if (r.Read())
+                                        using (var r = cmd.ExecuteReader())
                                         {
-                                            hasTf = true;
-                                            tfStart = r["StartTime"].ToString();
-                                            tfEnd = r["EndTime"].ToString();
-                                            tfMode = r["Mode"].ToString();
-                                            tfImgPath = r["LocalImagePath"].ToString();
-                                            double.TryParse(r["Width"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out tfW);
-                                            double.TryParse(r["Length"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out tfL);
-                                            double.TryParse(r["ProductionRatio"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out tfProd);
-                                            try { tfCompleted = Convert.ToInt32(r["Completed"]); } catch {}
+                                            if (r.Read())
+                                            {
+                                                hasTf = true;
+                                                tfStart = r["StartTime"].ToString();
+                                                tfEnd = r["EndTime"].ToString();
+                                                tfMode = r["Mode"].ToString();
+                                                tfImgPath = r["LocalImagePath"].ToString();
+                                                double.TryParse(r["Width"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out tfW);
+                                                double.TryParse(r["Length"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out tfL);
+                                                double.TryParse(r["ProductionRatio"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out tfProd);
+                                                try { tfCompleted = Convert.ToInt32(r["Completed"]); } catch {}
+                                            }
                                         }
                                     }
                                 }
+                                catch (Exception exTf) { Console.WriteLine("Subquery TF Err: " + exTf.Message); }
 
                                 string txtJson = hasTxt ? string.Format(CultureInfo.InvariantCulture,
                                     "{{\"startTime\":\"{0}\",\"endTime\":\"{1}\",\"mode\":\"{2}\",\"width\":{3},\"length\":{4},\"copies\":{5},\"completed\":{6},\"productionRatio\":{7},\"totalPass\":{8},\"maxPass\":{9}}}",
