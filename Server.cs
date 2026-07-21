@@ -400,8 +400,7 @@ namespace RipLogViewer
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine("DEBUG print_details caught: " + ex.ToString());
-                            jsonResult = string.Format("{{\"error\":\"{0}\"}}", HttpUtility.JavaScriptStringEncode(ex.ToString()));
+                            jsonResult = "{\"error\":\"" + HttpUtility.JavaScriptStringEncode(ex.Message) + "\",\"stackTrace\":\"" + HttpUtility.JavaScriptStringEncode(ex.StackTrace ?? "") + "\"}";
                         }
                     }
 
