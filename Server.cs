@@ -120,6 +120,9 @@ namespace RipLogViewer
             HttpListenerResponse response = context.Response;
             response.AppendHeader("Access-Control-Allow-Origin", "*");
 
+            Console.WriteLine("[" + DateTime.Now.ToString("HH:mm:ss") + "] REQ: " + request.Url.PathAndQuery);
+            Console.Out.Flush();
+
             string path = request.Url.AbsolutePath.ToLower();
 
             // Refresh paths from config.txt dynamically on every request
