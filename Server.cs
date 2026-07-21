@@ -396,10 +396,11 @@ namespace RipLogViewer
                             using (var conn = new SQLiteConnection(DatabaseManager.connectionString))
                             {
                                 conn.Open();
-                                string query = "SELECT * FROM riplog WHERE StartTime LIKE @dt ORDER BY StartTime DESC";
+                                string query = "SELECT * FROM riplog WHERE (StartTime LIKE @dtSlash OR StartTime LIKE @dtDash) ORDER BY StartTime DESC";
                                 using (var cmd = new SQLiteCommand(query, conn))
                                 {
-                                    cmd.Parameters.AddWithValue("@dt", dateParam.Replace("-", "/") + "%");
+                                    cmd.Parameters.AddWithValue("@dtSlash", dateParam.Replace("-", "/") + "%");
+                                    cmd.Parameters.AddWithValue("@dtDash", dateParam.Replace("/", "-") + "%");
                                     using (var reader = cmd.ExecuteReader())
                                     {
                                         while (reader.Read())
