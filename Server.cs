@@ -400,11 +400,9 @@ namespace RipLogViewer
                             using (var conn = new SQLiteConnection(DatabaseManager.connectionString))
                             {
                                 conn.Open();
-                                string query = "SELECT * FROM riplog WHERE (StartTime LIKE @dtSlash OR StartTime LIKE @dtDash) ORDER BY StartTime DESC";
+                                string query = "SELECT * FROM riplog WHERE (StartTime LIKE '" + dateParam.Replace("-", "/") + "%' OR StartTime LIKE '" + dateParam.Replace("/", "-") + "%') ORDER BY StartTime DESC";
                                 using (var cmd = new SQLiteCommand(query, conn))
                                 {
-                                    cmd.Parameters.AddWithValue("@dtSlash", dateParam.Replace("-", "/") + "%");
-                                    cmd.Parameters.AddWithValue("@dtDash", dateParam.Replace("/", "-") + "%");
                                     using (var reader = cmd.ExecuteReader())
                                     {
                                         while (reader.Read())
@@ -420,10 +418,10 @@ namespace RipLogViewer
 
                                             // Subquery TXT Log
                                             string txtJson = "null";
-                                            using (var cmdTxt = new SQLiteCommand("SELECT * FROM logtxt WHERE JobName LIKE @fn AND StartTime LIKE @dp ORDER BY StartTime DESC LIMIT 1", conn))
+                                            string safeFn = fn.Replace("'", "''");
+                                            string txtQuery = "SELECT * FROM logtxt WHERE JobName LIKE '%" + safeFn + "%' AND (StartTime LIKE '" + dateParam.Replace("-", "/") + "%' OR StartTime LIKE '" + dateParam.Replace("/", "-") + "%') ORDER BY StartTime DESC LIMIT 1";
+                                            using (var cmdTxt = new SQLiteCommand(txtQuery, conn))
                                             {
-                                                cmdTxt.Parameters.AddWithValue("@fn", "%" + fn + "%");
-                                                cmdTxt.Parameters.AddWithValue("@dp", dateParam.Replace("-", "/") + "%");
                                                 using (var rTxt = cmdTxt.ExecuteReader())
                                                 {
                                                     if (rTxt.Read())
@@ -1542,9 +1540,9 @@ namespace RipLogViewer
             var pendingIds = new List<string>();
             var payloads = new List<string>();
 
-            using (var cmd = new SQLiteCommand("SELECT *, rowid as TrueRowId FROM " + tableName + " WHERE sincronizado = 0 AND StartTime LIKE @today ORDER BY rowid ASC LIMIT 200", conn))
+            string sql = "SELECT *, rowid as TrueRowId FROM " + tableName + " WHERE sincronizado = 0 AND (StartTime LIKE '" + today.Replace("-", "/") + "%' OR StartTime LIKE '" + today.Replace("/", "-") + "%') ORDER BY rowid ASC LIMIT 200";
+            using (var cmd = new SQLiteCommand(sql, conn))
             {
-                cmd.Parameters.AddWithValue("@today", today + "%");
                 using (var reader = cmd.ExecuteReader())
                 {
                     while (reader.Read())
