@@ -352,13 +352,37 @@ namespace RipLogViewer
                                 }
                                 catch (Exception ex3) { debugLog += "[TfTask Err: " + ex3.Message + "] "; }
 
-                                string txtJson = hasTxt ? string.Format(CultureInfo.InvariantCulture,
-                                    "{{\"startTime\":\"{0}\",\"endTime\":\"{1}\",\"mode\":\"{2}\",\"width\":{3},\"length\":{4},\"copies\":{5},\"completed\":{6},\"productionRatio\":{7},\"totalPass\":{8},\"maxPass\":{9}}}",
-                                    txtStart, txtEnd, HttpUtility.JavaScriptStringEncode(txtMode), txtW, txtL, txtCopies, txtCompleted, txtProd, txtTPass, txtMPass) : "null";
+                                string txtJson = "null";
+                                if (hasTxt)
+                                {
+                                    txtJson = "{"
+                                        + "\"startTime\":\"" + HttpUtility.JavaScriptStringEncode(txtStart) + "\","
+                                        + "\"endTime\":\"" + HttpUtility.JavaScriptStringEncode(txtEnd) + "\","
+                                        + "\"mode\":\"" + HttpUtility.JavaScriptStringEncode(txtMode) + "\","
+                                        + "\"width\":" + txtW.ToString(CultureInfo.InvariantCulture) + ","
+                                        + "\"length\":" + txtL.ToString(CultureInfo.InvariantCulture) + ","
+                                        + "\"copies\":" + txtCopies + ","
+                                        + "\"completed\":" + txtCompleted + ","
+                                        + "\"productionRatio\":" + txtProd.ToString(CultureInfo.InvariantCulture) + ","
+                                        + "\"totalPass\":" + txtTPass + ","
+                                        + "\"maxPass\":" + txtMPass
+                                        + "}";
+                                }
 
-                                string tfJson = hasTf ? string.Format(CultureInfo.InvariantCulture,
-                                    "{{\"startTime\":\"{0}\",\"endTime\":\"{1}\",\"mode\":\"{2}\",\"width\":{3},\"length\":{4},\"completed\":{5},\"productionRatio\":{6},\"localImagePath\":\"{7}\"}}",
-                                    tfStart, tfEnd, HttpUtility.JavaScriptStringEncode(tfMode), tfW, tfL, tfCompleted, tfProd, HttpUtility.JavaScriptStringEncode(tfImgPath)) : "null";
+                                string tfJson = "null";
+                                if (hasTf)
+                                {
+                                    tfJson = "{"
+                                        + "\"startTime\":\"" + HttpUtility.JavaScriptStringEncode(tfStart) + "\","
+                                        + "\"endTime\":\"" + HttpUtility.JavaScriptStringEncode(tfEnd) + "\","
+                                        + "\"mode\":\"" + HttpUtility.JavaScriptStringEncode(tfMode) + "\","
+                                        + "\"width\":" + tfW.ToString(CultureInfo.InvariantCulture) + ","
+                                        + "\"length\":" + tfL.ToString(CultureInfo.InvariantCulture) + ","
+                                        + "\"completed\":" + tfCompleted + ","
+                                        + "\"productionRatio\":" + tfProd.ToString(CultureInfo.InvariantCulture) + ","
+                                        + "\"localImagePath\":\"" + HttpUtility.JavaScriptStringEncode(tfImgPath) + "\""
+                                        + "}";
+                                }
 
                                 jsonResult = "{"
                                     + "\"machineName\":\"" + HttpUtility.JavaScriptStringEncode(machineName) + "\","
