@@ -264,13 +264,14 @@ namespace RipLogViewer
                                 string cleanName = filename.Trim();
                                 string datePrefix = !string.IsNullOrWhiteSpace(starttime) && starttime.Length >= 10 ? starttime.Substring(0, 10).Replace("-", "/").Replace("/", "-") : "";
 
+                                string safeName = cleanName.Replace("'", "''");
+
                                 // 1. RIPLOG
                                 string ripFileName = cleanName, ripState = "PRINT", ripStartTime = starttime ?? "";
                                 double ripWidth = 0, ripLength = 0; int ripCopias = 1;
 
-                                using (var cmd = new SQLiteCommand("SELECT * FROM riplog WHERE FileName LIKE @fn ORDER BY StartTime DESC LIMIT 1", conn))
+                                using (var cmd = new SQLiteCommand("SELECT * FROM riplog WHERE FileName LIKE '%" + safeName + "%' ORDER BY StartTime DESC LIMIT 1", conn))
                                 {
-                                    cmd.Parameters.Add(new SQLiteParameter("@fn", "%" + cleanName + "%"));
                                     using (var r = cmd.ExecuteReader())
                                     {
                                         if (r.Read())
@@ -291,9 +292,8 @@ namespace RipLogViewer
                                 double txtW = 0, txtL = 0, txtProd = 0;
                                 int txtCopies = 1, txtCompleted = 0, txtTPass = 0, txtMPass = 0;
 
-                                using (var cmd = new SQLiteCommand("SELECT * FROM logtxt WHERE JobName LIKE @fn ORDER BY StartTime DESC LIMIT 1", conn))
+                                using (var cmd = new SQLiteCommand("SELECT * FROM logtxt WHERE JobName LIKE '%" + safeName + "%' ORDER BY StartTime DESC LIMIT 1", conn))
                                 {
-                                    cmd.Parameters.Add(new SQLiteParameter("@fn", "%" + cleanName + "%"));
                                     using (var r = cmd.ExecuteReader())
                                     {
                                         if (r.Read())
@@ -319,9 +319,8 @@ namespace RipLogViewer
                                 double tfW = 0, tfL = 0, tfProd = 0;
                                 int tfCompleted = 0;
 
-                                using (var cmd = new SQLiteCommand("SELECT * FROM historialtf WHERE JobName LIKE @fn ORDER BY StartTime DESC LIMIT 1", conn))
+                                using (var cmd = new SQLiteCommand("SELECT * FROM historialtf WHERE JobName LIKE '%" + safeName + "%' ORDER BY StartTime DESC LIMIT 1", conn))
                                 {
-                                    cmd.Parameters.Add(new SQLiteParameter("@fn", "%" + cleanName + "%"));
                                     using (var r = cmd.ExecuteReader())
                                     {
                                         if (r.Read())
