@@ -245,6 +245,223 @@ namespace RipLogViewer
 
                     SendJsonResponse(response, json);
                 }
+                else if (path.StartsWith("/api/print_details"))
+                {
+                    string filename = request.QueryString["filename"];
+                    string starttime = request.QueryString["starttime"];
+                    string machineName = Environment.MachineName;
+
+                    string jsonResult = "{}";
+
+                    if (!string.IsNullOrWhiteSpace(filename))
+                    {
+                        try
+                        {
+                            using (var conn = new SQLiteConnection(DatabaseManager.connectionString))
+                            {
+                                conn.Open();
+                                
+                                string cleanName = filename.Trim();
+                                string datePrefix = !string.IsNullOrWhiteSpace(starttime) && starttime.Length >= 10 ? starttime.Substring(0, 10).Replace("-", "/").Replace("/", "-") : "";
+
+                                // 1. RIPLOG
+                                string ripSql = "SELECT * FROM riplog WHERE FileName LIKE @fn";
+                                if (!string.IsNullOrEmpty(starttime)) ripSql += " AND StartTime LIKE @st";
+                                ripSql += " LIMIT 1";
+
+                                string ripFileName = cleanName, ripState = "PRINT", ripStartTime = starttime ?? "";
+                                double ripWidth = 0, ripLength = 0; int ripCopias = 1;
+
+                                using (var cmd = new SQLiteCommand(ripSql, conn))
+                                {
+                                    cmd.Parameters.AddWithValue("@fn", "%" + cleanName + "%");
+                                    if (!string.IsNullOrEmpty(starttime)) cmd.Parameters.AddWithValue("@st", starttime + "%");
+                                    using (var r = cmd.ExecuteReader())
+                                    {
+                                        if (r.Read())
+                                        {
+                                            ripFileName = r["FileName"].ToString();
+                                            ripState = r["State"].ToString();
+                                            ripStartTime = r["StartTime"].ToString();
+                                            double.TryParse(r["Width"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out ripWidth);
+                                            double.TryParse(r["Length"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out ripLength);
+                                            try { if (r["Copias"] != DBNull.Value) ripCopias = Convert.ToInt32(r["Copias"]); } catch {}
+                                        }
+                                    }
+                                }
+
+                                // 2. TXT Log
+                                string txtSql = "SELECT * FROM logtxt WHERE JobName LIKE @fn";
+                                if (!string.IsNullOrEmpty(datePrefix)) txtSql += " AND StartTime LIKE @dp";
+                                txtSql += " ORDER BY StartTime DESC LIMIT 1";
+
+                                bool hasTxt = false;
+                                string txtStart = "", txtEnd = "", txtMode = "";
+                                double txtW = 0, txtL = 0, txtProd = 0;
+                                int txtCopies = 1, txtCompleted = 0, txtTPass = 0, txtMPass = 0;
+
+                                using (var cmd = new SQLiteCommand(txtSql, conn))
+                                {
+                                    cmd.Parameters.AddWithValue("@fn", "%" + cleanName + "%");
+                                    if (!string.IsNullOrEmpty(datePrefix)) cmd.Parameters.AddWithValue("@dp", datePrefix + "%");
+                                    using (var r = cmd.ExecuteReader())
+                                    {
+                                        if (r.Read())
+                                        {
+                                            hasTxt = true;
+                                            txtStart = r["StartTime"].ToString();
+                                            txtEnd = r["EndTime"].ToString();
+                                            txtMode = r["Mode"].ToString();
+                                            double.TryParse(r["Width"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out txtW);
+                                            double.TryParse(r["Length"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out txtL);
+                                            double.TryParse(r["ProductionRatio"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out txtProd);
+                                            try { txtCopies = Convert.ToInt32(r["Copies"]); } catch {}
+                                            try { txtCompleted = Convert.ToInt32(r["Completed"]); } catch {}
+                                            try { txtTPass = Convert.ToInt32(r["TotalPass"]); } catch {}
+                                            try { txtMPass = Convert.ToInt32(r["MaxPass"]); } catch {}
+                                        }
+                                    }
+                                }
+
+                                // 3. TF Task
+                                string tfSql = "SELECT * FROM historialtf WHERE JobName LIKE @fn";
+                                if (!string.IsNullOrEmpty(datePrefix)) tfSql += " AND StartTime LIKE @dp";
+                                tfSql += " ORDER BY StartTime DESC LIMIT 1";
+
+                                bool hasTf = false;
+                                string tfStart = "", tfEnd = "", tfMode = "", tfImgPath = "";
+                                double tfW = 0, tfL = 0, tfProd = 0;
+                                int tfCompleted = 0;
+
+                                using (var cmd = new SQLiteCommand(tfSql, conn))
+                                {
+                                    cmd.Parameters.AddWithValue("@fn", "%" + cleanName + "%");
+                                    if (!string.IsNullOrEmpty(datePrefix)) tfSql += " AND StartTime LIKE @dp";
+                                    using (var r = cmd.ExecuteReader())
+                                    {
+                                        if (r.Read())
+                                        {
+                                            hasTf = true;
+                                            tfStart = r["StartTime"].ToString();
+                                            tfEnd = r["EndTime"].ToString();
+                                            tfMode = r["Mode"].ToString();
+                                            tfImgPath = r["LocalImagePath"].ToString();
+                                            double.TryParse(r["Width"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out tfW);
+                                            double.TryParse(r["Length"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out tfL);
+                                            double.TryParse(r["ProductionRatio"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out tfProd);
+                                            try { tfCompleted = Convert.ToInt32(r["Completed"]); } catch {}
+                                        }
+                                    }
+                                }
+
+                                string txtJson = hasTxt ? string.Format(CultureInfo.InvariantCulture,
+                                    "{{\"startTime\":\"{0}\",\"endTime\":\"{1}\",\"mode\":\"{2}\",\"width\":{3},\"length\":{4},\"copies\":{5},\"completed\":{6},\"productionRatio\":{7},\"totalPass\":{8},\"maxPass\":{9}}}",
+                                    txtStart, txtEnd, HttpUtility.JavaScriptStringEncode(txtMode), txtW, txtL, txtCopies, txtCompleted, txtProd, txtTPass, txtMPass) : "null";
+
+                                string tfJson = hasTf ? string.Format(CultureInfo.InvariantCulture,
+                                    "{{\"startTime\":\"{0}\",\"endTime\":\"{1}\",\"mode\":\"{2}\",\"width\":{3},\"length\":{4},\"completed\":{5},\"productionRatio\":{6},\"localImagePath\":\"{7}\"}}",
+                                    tfStart, tfEnd, HttpUtility.JavaScriptStringEncode(tfMode), tfW, tfL, tfCompleted, tfProd, HttpUtility.JavaScriptStringEncode(tfImgPath)) : "null";
+
+                                jsonResult = string.Format(CultureInfo.InvariantCulture,
+                                    "{{\"machineName\":\"{0}\",\"fileName\":\"{1}\",\"state\":\"{2}\",\"startTime\":\"{3}\",\"width\":{4},\"length\":{5},\"copias\":{6},\"txtLog\":{7},\"tfTask\":{8}}}",
+                                    HttpUtility.JavaScriptStringEncode(machineName),
+                                    HttpUtility.JavaScriptStringEncode(ripFileName),
+                                    HttpUtility.JavaScriptStringEncode(ripState),
+                                    ripStartTime, ripWidth, ripLength, ripCopias,
+                                    txtJson, tfJson);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            jsonResult = string.Format("{{\"error\":\"{0}\"}}", HttpUtility.JavaScriptStringEncode(ex.Message));
+                        }
+                    }
+
+                    SendJsonResponse(response, jsonResult);
+                }
+                else if (path.StartsWith("/api/daily_details"))
+                {
+                    string dateParam = request.QueryString["date"];
+                    if (string.IsNullOrWhiteSpace(dateParam)) dateParam = DateTime.Now.ToString("yyyy-MM-dd");
+                    string machineParam = request.QueryString["machine"];
+                    string machineName = Environment.MachineName;
+
+                    var jsonList = new List<string>();
+                    bool returnEmpty = (!string.IsNullOrWhiteSpace(machineParam) && !machineParam.Equals(machineName, StringComparison.OrdinalIgnoreCase));
+
+                    if (!returnEmpty)
+                    {
+                        try
+                        {
+                            using (var conn = new SQLiteConnection(DatabaseManager.connectionString))
+                            {
+                                conn.Open();
+                                string query = "SELECT * FROM riplog WHERE StartTime LIKE @dt ORDER BY StartTime DESC";
+                                using (var cmd = new SQLiteCommand(query, conn))
+                                {
+                                    cmd.Parameters.AddWithValue("@dt", dateParam.Replace("-", "/") + "%");
+                                    using (var reader = cmd.ExecuteReader())
+                                    {
+                                        while (reader.Read())
+                                        {
+                                            string fn = reader["FileName"].ToString();
+                                            string st = reader["StartTime"].ToString();
+                                            string state = reader["State"].ToString();
+                                            double w = 0, l = 0;
+                                            double.TryParse(reader["Width"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out w);
+                                            double.TryParse(reader["Length"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out l);
+                                            int copias = 1;
+                                            try { if (reader["Copias"] != DBNull.Value) copias = Convert.ToInt32(reader["Copias"]); } catch {}
+
+                                            // Subquery TXT Log
+                                            string txtJson = "null";
+                                            using (var cmdTxt = new SQLiteCommand("SELECT * FROM logtxt WHERE JobName LIKE @fn AND StartTime LIKE @dp ORDER BY StartTime DESC LIMIT 1", conn))
+                                            {
+                                                cmdTxt.Parameters.AddWithValue("@fn", "%" + fn + "%");
+                                                cmdTxt.Parameters.AddWithValue("@dp", dateParam.Replace("-", "/") + "%");
+                                                using (var rTxt = cmdTxt.ExecuteReader())
+                                                {
+                                                    if (rTxt.Read())
+                                                    {
+                                                        double tw = 0, tl = 0, tprod = 0;
+                                                        double.TryParse(rTxt["Width"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out tw);
+                                                        double.TryParse(rTxt["Length"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out tl);
+                                                        double.TryParse(rTxt["ProductionRatio"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out tprod);
+                                                        txtJson = string.Format(CultureInfo.InvariantCulture,
+                                                            "{{\"startTime\":\"{0}\",\"endTime\":\"{1}\",\"mode\":\"{2}\",\"width\":{3},\"length\":{4},\"copies\":{5},\"completed\":{6},\"productionRatio\":{7},\"totalPass\":{8},\"maxPass\":{9}}}",
+                                                            rTxt["StartTime"].ToString(), rTxt["EndTime"].ToString(),
+                                                            HttpUtility.JavaScriptStringEncode(rTxt["Mode"].ToString()),
+                                                            tw, tl, Convert.ToInt32(rTxt["Copies"]), Convert.ToInt32(rTxt["Completed"]),
+                                                            tprod, Convert.ToInt32(rTxt["TotalPass"]), Convert.ToInt32(rTxt["MaxPass"]));
+                                                    }
+                                                }
+                                            }
+
+                                            jsonList.Add(string.Format(CultureInfo.InvariantCulture,
+                                                "{{\"fileName\":\"{0}\",\"state\":\"{1}\",\"startTime\":\"{2}\",\"width\":{3},\"length\":{4},\"copias\":{5},\"machineName\":\"{6}\",\"txtLog\":{7}}}",
+                                                HttpUtility.JavaScriptStringEncode(fn),
+                                                HttpUtility.JavaScriptStringEncode(state),
+                                                st, w, l, copias,
+                                                HttpUtility.JavaScriptStringEncode(machineName),
+                                                txtJson
+                                            ));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine("API Daily Details Error: " + ex.Message);
+                        }
+                    }
+
+                    string printedJson = "[" + string.Join(",", jsonList.ToArray()) + "]";
+                    string json = string.Format("{{\"status\":\"success\",\"queryDate\":\"{0}\",\"machineName\":\"{1}\",\"jobs\":{2}}}",
+                        dateParam, HttpUtility.JavaScriptStringEncode(machineName), printedJson);
+
+                    SendJsonResponse(response, json);
+                }
                 else if (path.StartsWith("/api/print"))
                 {
                     List<PrintedJob> allPrinted = new List<PrintedJob>();
