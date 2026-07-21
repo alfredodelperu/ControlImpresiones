@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de RIP - Control de Impresiones</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        :root {
+            --bg-color: #0f172a;
+            --surface: #1e293b;
+            --surface-hover: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --border: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.5;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        h1 span {
+            color: var(--accent);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background-color: var(--surface);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .btn-refresh {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-refresh:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .filters-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: flex-end;
+            background-color: var(--surface);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .filter-group label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .filter-group input, .filter-group select {
+            padding: 0.6rem;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: inherit;
+        }
+
+        .filter-group input:focus, .filter-group select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .btn-filter {
+            background-color: var(--surface-hover);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            height: 42px;
+        }
+
+        .btn-filter:hover {
+            background-color: var(--border);
+        }
+
+        .btn-clear {
+            background-color: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            height: 42px;
+        }
+
+        .btn-clear:hover {
+            color: var(--text-primary);
+            border-color: var(--text-secondary);
+        }
+
+        .table-container {
+            background-color: var(--surface);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow: auto;
+            max-height: 65vh;
+        }
+
+        table.view-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            text-align: left;
+        }
+
+        table.view-table th {
+            background-color: #0f172a;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 600;
+            padding: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-bottom: 1px solid var(--border);
+        }
+
+        table.view-table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+
+        table.view-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        table.view-table tbody tr {
+            transition: background-color 0.15s;
+        }
+
+        table.view-table tbody tr:hover {
+            background-color: var(--surface-hover);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.35rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background-color: var(--accent);
+            color: white;
+        }
+
+        .badge.rip {
+            background-color: var(--accent);
+        }
+
+        .badge.print {
+            background-color: var(--success);
+        }
+        
+        .badge.end {
+            background-color: var(--text-secondary);
+        }
+
+        .filename {
+            max-width: 250px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: inline-block;
+            color: #e2e8f0;
+            font-weight: 500;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 4rem;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-left-color: var(--accent);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        .error-message {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            margin-bottom: 1.5rem;
+            display: none;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-color); 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--surface-hover); 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary); 
+        }
+
+        .header-content h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-content h2 span#machine-name {
+            color: #4CAF50;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><span id="machine-name" style="color:#007bff; font-weight:900;"></span> <span>Control</span> RIP de FlexiPRINT</h1>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <a href="/resumen.html" style="background-color: #3b82f6; color: white; padding: 0.6rem 1.2rem; border-radius: 8px; text-decoration: none; font-weight: 600; border: 1px solid #3b82f6;">Reporte &rarr;</a>
+                <a href="/printexp.html" style="background-color: var(--surface-hover); color: white; padding: 0.6rem 1.2rem; border-radius: 8px; text-decoration: none; font-weight: 600; border: 1px solid var(--border);">Ir a Historial PrintExp &rarr;</a>
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
+                    <input type="checkbox" id="toggle-autorefresh" style="width: 16px; height: 16px;">
+                    Auto-actualizar (10s)
+                </label>
+                <button class="btn-refresh" onclick="loadData()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.92-10.26l5.08 5.08"/>
+                    </svg>
+                    Actualizar
+                </button>
+            </div>
+        </header>
+
+        <div class="error-box" id="error-box"></div>
+
+        <div class="filters-container">
+            <div class="filter-group">
+                <label for="filter-date-start">Fecha inicio:</label>
+                <input type="date" id="filter-date-start">
+            </div>
+            <div class="filter-group">
+                <label for="filter-date-end">Fecha fin:</label>
+                <input type="date" id="filter-date-end">
+            </div>
+            <div class="filter-group">
+                <label for="filter-event">Evento:</label>
+                <select id="filter-event" onchange="applyFilters()">
+                    <option value="ALL">Ambos (RIP y PRINT)</option>
+                    <option value="RIP">Solo RIP</option>
+                    <option value="PRINT">Solo PRINT</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="filter-filename">Archivo:</label>
+                <input type="text" id="filter-filename" placeholder="Buscar en archivo..." oninput="applyFilters()">
+            </div>
+            <div class="filter-actions">
+                <button class="btn-apply" onclick="applyFilters()">Aplicar</button>
+                <button class="btn-export" onclick="exportToCSV()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    CSV
+                </button>
+                <button class="btn-clear" onclick="clearFilters()">Limpiar</button>
+            </div>
+        </div>
+
+        <div class="summary-cards" style="display: flex; gap: 20px;">
+            <div class="card" style="flex: 1;">
+                <h3>TOTAL ARCHIVOS RIPEADOS</h3>
+                <div class="value" id="stat-rip">0</div>
+            </div>
+            <div class="card" style="flex: 1;">
+                <h3>TOTAL METROS LINEALES (ML)</h3>
+                <div class="value" id="stat-ml">0.00</div>
+            </div>
+            <div class="card" style="flex: 1;">
+                <h3>TOTAL METROS CUADRADOS (M2)</h3>
+                <div class="value" id="stat-m2">0.00</div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <div id="loading-indicator" class="loading">
+                <div class="spinner"></div>
+                Cargando datos del log de RIP...
+            </div>
+            
+            <table class="view-table" id="data-table" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>N°</th>
+                        <th>Estado</th>
+                        <th>Archivo Original</th>
+                        <th>Ancho (cm)</th>
+                        <th>Largo (cm)</th>
+                        <th>Copias</th>
+                        <th>Fecha RIP</th>
+                        <th>Hora</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        async function loadData() {
+            const tableBody = document.getElementById('table-body');
+            const dataTable = document.getElementById('data-table');
+            const loading = document.getElementById('loading-indicator');
+            const errorBox = document.getElementById('error-box');
+
+            loading.style.display = 'flex';
+            errorBox.style.display = 'none';
+
+            try {
+                const timestamp = new Date().getTime();
+                const response = await fetch('/api/rip?t=' + timestamp);
+                if (!response.ok) throw new Error('Error al cargar datos (' + response.status + ')');
+
+                const payload = await response.json();
+                
+                document.getElementById('machine-name').textContent = payload.machineName ? (payload.machineName + ' |') : '';
+                const machineName = payload.machineName || 'Impresora';
+                document.title = `RIP Dashboard - ${machineName}`;
+                
+                // Parse RIP LOG
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(payload.logHtml, 'text/html');
+                const tables = doc.querySelectorAll('table.tab1');
+                const parsedEvents = [];
+
+                tables.forEach(table => {
+                    const h1 = table.querySelector('th h1');
+                    if (!h1) return;
+                    const titleRaw = h1.textContent.trim().replace(/^&nbsp;|\s+$/g, '').trim().toLowerCase();
+                    
+                    let actionType = null;
+                    if (titleRaw.includes('empezar trabajo de rip')) actionType = 'RIP';
+                    // Evitar la palabra entera para no depender de la tilde (ó) de Windows que se corrompe en HTML
+                    if (titleRaw.includes('iniciar impresi')) actionType = 'PRINT';
+                    
+                    if (!actionType) return;
+
+                    const ev = { action: actionType, type: actionType };
+                    const rows = table.querySelectorAll('tr');
+                    rows.forEach(row => {
+                        const th = row.querySelector('th');
+                        const td = row.querySelector('td');
+                        if (th && td) {
+                            let k = th.textContent.replace(/[\u00A0\xA0]/g, ' ').replace(/\s+/g, ' ').trim().replace(':', '');
+                            let v = td.textContent.replace(/[\u00A0\xA0]/g, ' ').replace(/\s+/g, ' ').trim();
+                            ev[k] = v;
+                        }
+                    });
+
+                    // Solo considerar si tiene Archivo. 
+                    // Para RIP necesitamos Impresora y excluir temporales. Para PRINT no.
+                    if (ev['Archivo']) {
+                        const filename = ev['Archivo'].toLowerCase();
+                        if (actionType === 'RIP') {
+                            if (ev['Impresora'] && !filename.includes('tiff2eps')) {
+                                parsedEvents.push(ev);
+                            }
+                        } else if (actionType === 'PRINT') {
+                            parsedEvents.push(ev);
+                        }
+                    }
+                });
+
+                // Helper to get values ignoring case and accents
+                const getVal = (obj, partial) => {
+                    const key = Object.keys(obj).find(k => k.toLowerCase().includes(partial.toLowerCase()));
+                    return key ? obj[key] : '-';
+                };
+
+                const allEvents = parsedEvents.map(e => {
+                    let dateRaw = '-';
+                    if (e.type === 'RIP') {
+                        dateRaw = getVal(e, 'inicio de rip');
+                        if (dateRaw === '-') dateRaw = getVal(e, 'envío');
+                    } else {
+                        // Para PRINT tomamos la fecha de FINALIZACIÓN de la salida
+                        dateRaw = getVal(e, 'finalizaci');
+                    }
+
+                    const dt = parseDateTime(dateRaw);
+                    const dims = parseDimensions(getVal(e, 'dimens'));
+                    
+                    const originalPath = e['Archivo'] || '-';
+                    
+                    return {
+                        id: 0,
+                        type: e.type,
+                        name: originalPath !== '-' ? originalPath.split('\\').pop() : '-',
+                        path: originalPath,
+                        width: dims.ancho,
+                        length: dims.largo,
+                        copies: parseInt(getVal(e, 'copias')) || 1,
+                        date: dt.date,
+                        dateStr: dt.dateStr,
+                        timeStr: dt.timeStr,
+                        raw: e
+                    };
+                });
+
+                allEvents.sort((a, b) => (b.date || 0) - (a.date || 0));
+                
+                window.allEvents = allEvents;
+                updateDateFilters(allEvents);
+                applyFilters();
+
+                loading.style.display = 'none';
+                dataTable.style.display = 'table';
+            } catch (err) {
+                loading.style.display = 'none';
+                errorBox.style.display = 'block';
+                errorBox.innerHTML = `<strong>Error:</strong> ${err.message}`;
+            }
+        }
+
+        function updateDateFilters(events) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlDate = urlParams.get('date');
+            const urlFilename = urlParams.get('filename');
+
+            if (urlDate && !document.getElementById('filter-date-start').value) {
+                document.getElementById('filter-date-start').value = urlDate;
+                document.getElementById('filter-date-end').value = urlDate;
+            } else if (!document.getElementById('filter-date-start').value) {
+                // Establecer fecha de hoy por defecto para evitar sobrecarga
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('filter-date-start').value = today;
+                document.getElementById('filter-date-end').value = today;
+            }
+
+            if (urlFilename && !document.getElementById('filter-filename').value) {
+                document.getElementById('filter-filename').value = urlFilename;
+            }
+        }
+
+        function applyFilters() {
+            if (!window.allEvents) return;
+            const start = document.getElementById('filter-date-start').value;
+            const end = document.getElementById('filter-date-end').value;
+            const typeEvent = document.getElementById('filter-event').value;
+            const name = document.getElementById('filter-filename').value.toLowerCase();
+
+            const filtered = window.allEvents.filter(ev => {
+                if (typeEvent !== 'ALL' && ev.type !== typeEvent) return false;
+                if (name && !ev.name.toLowerCase().includes(name)) return false;
+                
+                if (ev.date) {
+                    const yyyy = ev.date.getFullYear();
+                    const mm = String(ev.date.getMonth() + 1).padStart(2, '0');
+                    const dd = String(ev.date.getDate()).padStart(2, '0');
+                    const ds = `${yyyy}-${mm}-${dd}`;
+                    
+                    if (start && ds < start) return false;
+                    if (end && ds > end) return false;
+                } else {
+                    if (start || end) return false;
+                }
+                return true;
+            });
+
+            renderUI(filtered);
+        }
+
+        function renderUI(data) {
+            const body = document.getElementById('table-body');
+            body.innerHTML = '';
+            
+            // Actualizar contadores y sumatorias
+            let totalML = 0;
+            let totalM2 = 0;
+
+            data.forEach((ev, idx) => {
+                const tr = document.createElement('tr');
+                const badgeClass = ev.type === 'RIP' ? 'rip' : 'print';
+                tr.innerHTML = `
+                    <td>${data.length - idx}</td>
+                    <td><span class="badge ${badgeClass}">${ev.type}</span></td>
+                    <td title="${ev.path}"><span class="filename">${ev.name}</span></td>
+                    <td>${ev.width}</td>
+                    <td>${ev.length}</td>
+                    <td>${ev.copies}</td>
+                    <td>${ev.dateStr}</td>
+                    <td>${ev.timeStr}</td>
+                `;
+                body.appendChild(tr);
+
+                // Calcular metricas de metraje si las variables existen y son numeros validos
+                const w = parseFloat(ev.width);
+                const l = parseFloat(ev.length);
+                const c = parseInt(ev.copies) || 1;
+
+                if (!isNaN(w) && !isNaN(l)) {
+                    // Largo está en cm, para pasarlo a Metros lineales dividimos entre 100
+                    const metrosLineales = (l / 100) * c;
+                    totalML += metrosLineales;
+                    
+                    // Area M2 = (Ancho * Largo en CM) / 10000 para pasar a m2 * copias
+                    const metrosCuadrados = ((w * l) / 10000) * c;
+                    totalM2 += metrosCuadrados;
+                }
+            });
+
+            document.getElementById('stat-rip').textContent = data.length;
+            document.getElementById('stat-ml').textContent = totalML.toFixed(2);
+            document.getElementById('stat-m2').textContent = totalM2.toFixed(2);
+        }
+
+        function parseDateTime(s) {
+            if (!s || s === '-') return { date: null, dateStr: '-', timeStr: '-' };
+            // Formato de entrada: "17:13:00 27/06/2024" o "6/27/2024 5:12 PM"
+            let timeStr = '-';
+            let dateStr = '-';
+            let dateObj = null;
+
+            const parts = s.trim().split(/\s+/);
+            if (parts.length >= 2) {
+                // Caso: HH:MM:SS DD/MM/YYYY (Ej: 17:13:00 27/06/2024)
+                if (parts[1].includes('/')) {
+                    timeStr = parts[0];
+                    dateStr = parts[1];
+                } 
+                // Caso alternativo (M/D/YYYY H:MM)
+                else if (parts[0].includes('/')) {
+                    dateStr = parts[0];
+                    timeStr = parts[1] + (parts[2] ? ' ' + parts[2] : '');
+                }
+
+                // Parser de fecha DD/MM/YYYY
+                const dParts = dateStr.split('/');
+                if (dParts.length === 3) {
+                    let year = parseInt(dParts[2]);
+                    let month, day;
+                    
+                    // Detectar si el primer dígito es mayor a 12 (entonces es DD/MM/YYYY) 
+                    // o si es formato inglés MM/DD/YYYY
+                    if (parseInt(dParts[0]) > 12 || dateStr.includes(year)) {
+                        day = parseInt(dParts[0]);
+                        month = parseInt(dParts[1]);
+                    } else {
+                        // Respaldo (asumiendo M/D/YYYY de Windows gringo)
+                        month = parseInt(dParts[0]);
+                        day = parseInt(dParts[1]);
+                    }
+
+                    const tParts = timeStr.split(':');
+                    let hrs = parseInt(tParts[0]) || 0;
+                    if (timeStr.toLowerCase().includes('pm') && hrs < 12) hrs += 12;
+                    if (timeStr.toLowerCase().includes('am') && hrs === 12) hrs = 0;
+                    let mins = parseInt(tParts[1]) || 0;
+                    let secs = parseInt(tParts[2]) || 0;
+
+                    dateObj = new Date(year, month - 1, day, hrs, mins, secs);
+                }
+            }
+
+            return {
+                date: (dateObj && !isNaN(dateObj)) ? dateObj : null,
+                dateStr: dateStr,
+                timeStr: timeStr
+            };
+        }
+
+        function parseDimensions(s) {
+            if (!s || s === '-') return { ancho: '-', largo: '-' };
+            // Formato: "47.0 x 24.3cm" o "18.5 x 9.6 in"
+            const strLower = s.toLowerCase();
+            const isInches = strLower.includes('in');
+            
+            const cleanS = strLower.replace(/cm|in/g, '').trim();
+            const parts = cleanS.split('x');
+            
+            let w = parseFloat(parts[0]?.trim()) || 0;
+            let l = parseFloat(parts[1]?.trim()) || 0;
+
+            if (isInches) {
+                w = w * 2.54;
+                l = l * 2.54;
+            }
+
+            return { 
+                ancho: w > 0 ? w.toFixed(2) : '-', 
+                largo: l > 0 ? l.toFixed(2) : '-' 
+            };
+        }
+
+        function clearFilters() {
+            document.getElementById('filter-filename').value = '';
+            document.getElementById('filter-date-start').value = '';
+            document.getElementById('filter-date-end').value = '';
+            applyFilters();
+        }
+
+        function exportCSV() {
+            const data = window.allEvents;
+            if (!data) return;
+            let csv = 'ID,Tipo,Archivo,Ancho_cm,Largo_cm,Copias,Fecha,Hora\n';
+            data.forEach((ev, i) => {
+                csv += `${data.length - i},${ev.type},"${ev.name}",${ev.width},${ev.length},${ev.copies},${ev.dateStr},${ev.timeStr}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute('download', 'reporte_rip.csv');
+            link.click();
+        }
+
+        document.addEventListener('DOMContentLoaded', loadData);
+        setInterval(() => {
+            if (document.getElementById('toggle-autorefresh').checked && document.activeElement.tagName !== 'INPUT') {
+                loadData();
+            }
+        }, 10000);
+    </script>
+</body>
+</html>

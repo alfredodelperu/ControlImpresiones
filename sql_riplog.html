@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Impresiones - Dashboard General (SQLite)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        :root {
+            --bg-color: #0f172a;
+            --surface: #1e293b;
+            --surface-hover: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #10b981;
+            --success-hover: #059669;
+            --warning: #f59e0b;
+            --border: #334155;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.5;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        .container { max-width: 1400px; margin: 0 auto; }
+
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);
+            flex-wrap: wrap; gap: 15px;
+        }
+
+        h1 { font-size: 1.8rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+        h1 span { color: var(--success); }
+
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem; margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background-color: var(--surface); padding: 1.5rem; border-radius: 12px;
+            border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-label { color: var(--text-secondary); font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem; }
+        .stat-value { font-size: 2rem; font-weight: 700; color: var(--text-primary); }
+
+        .btn-sync {
+            background-color: var(--success); color: white; border: none; padding: 0.6rem 1.2rem;
+            border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;
+            transition: background-color 0.2s;
+        }
+        .btn-sync:hover { background-color: var(--success-hover); }
+        .btn-sync:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .btn-refresh {
+            background-color: var(--accent); color: white; border: none; padding: 0.6rem 1.2rem;
+            border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;
+            transition: background-color 0.2s;
+        }
+        .btn-refresh:hover { background-color: var(--accent-hover); }
+
+        .filters-container {
+            display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;
+            background-color: var(--surface); padding: 1.5rem; border-radius: 12px;
+            border: 1px solid var(--border); margin-bottom: 2rem;
+        }
+
+        .filter-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 130px; }
+        .filter-group label { font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; }
+        .filter-group input, .filter-group select {
+            padding: 0.6rem; border-radius: 6px; border: 1px solid var(--border);
+            background-color: var(--bg-color); color: var(--text-primary); font-family: inherit;
+        }
+
+        .filter-group.range { flex-direction: row; gap: 5px; align-items: center; }
+        .filter-group.range input { width: 100%; }
+
+        .btn-apply { background-color: var(--surface-hover); color: var(--text-primary); border: 1px solid var(--border); padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; height: 42px; }
+        .btn-clear { background-color: transparent; color: var(--text-secondary); border: 1px solid var(--border); padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; height: 42px; }
+
+        .table-container { background-color: var(--surface); border-radius: 12px; border: 1px solid var(--border); overflow: auto; max-height: 65vh; }
+        table.view-table { width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; }
+        table.view-table th { background-color: #0f172a; color: var(--text-secondary); font-size: 0.875rem; font-weight: 600; padding: 1rem; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid var(--border); }
+        table.view-table td { padding: 1rem; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        table.view-table tbody tr:hover { background-color: var(--surface-hover); }
+
+        .badge { display: inline-block; padding: 0.35rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; color: white; }
+        .badge.rip { background-color: var(--accent); }
+        .badge.print { background-color: var(--success); }
+
+        .filename { max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block; color: #e2e8f0; font-weight: 500; }
+        
+        .loading { text-align: center; padding: 4rem; color: var(--text-secondary); font-size: 1.1rem; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .spinner { border: 3px solid rgba(255, 255, 255, 0.1); border-left-color: var(--success); border-radius: 50%; width: 32px; height: 32px; animation: spin 1s linear infinite; }
+        .error-message { background-color: rgba(239, 68, 68, 0.1); color: #ef4444; padding: 1rem; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.2); margin-bottom: 1.5rem; display: none; }
+        .success-message { background-color: rgba(16, 185, 129, 0.1); color: #10b981; padding: 1rem; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.2); margin-bottom: 1.5rem; display: none; }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .nav-link { color: var(--text-secondary); text-decoration: none; font-weight: 500; padding: 0.5rem 0.8rem; border-radius: 6px; border: 1px solid var(--border); transition: all 0.2s; }
+        .nav-link:hover { color: var(--text-primary); background-color: var(--surface-hover); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><span>Control</span> de Impresiones (Base de Datos)</h1>
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <a href="/printexp.html" class="nav-link">Historial PrintExp</a>
+                <a href="/printlog.html" class="nav-link">Logs .TXT</a>
+                <a href="/resumen.html" class="nav-link">Resumen Diarios</a>
+                
+                <button class="btn-sync" id="btn-sync" onclick="syncDatabase()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.92-10.26l5.08 5.08"/>
+                    </svg>
+                    Actualizar Base de Datos
+                </button>
+
+                <button class="btn-refresh" onclick="loadData()">
+                    Consultar BD
+                </button>
+            </div>
+        </header>
+
+        <div class="error-message" id="error-box"></div>
+        <div class="success-message" id="success-box"></div>
+
+        <div class="filters-container">
+            <div class="filter-group" style="min-width: 300px;">
+                <label>Rango de Fecha (Hoy por defecto):</label>
+                <div class="filter-group range" style="margin-top: 0;">
+                    <input type="date" id="fi-date-start">
+                    <span>-</span>
+                    <input type="date" id="fi-date-end">
+                </div>
+            </div>
+
+            <div class="filter-group" style="min-width: 200px;">
+                <label>Impresora / Máquina:</label>
+                <select id="fi-machine">
+                    <option value="">Todas las Impresoras</option>
+                    <option value="QU-DTFUV1">QU-DTFUV1 (192.168.100.155)</option>
+                    <option value="QU-DTFUV2">QU-DTFUV2 (192.168.100.59)</option>
+                    <option value="pvuvrollo">pvuvrollo (192.168.1.231)</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label>Evento:</label>
+                <select id="fi-event">
+                    <option value="">Cualquiera</option>
+                    <option value="RIP">RIP</option>
+                    <option value="PRINT">PRINT</option>
+                </select>
+            </div>
+
+            <div class="filter-group" style="flex: 2;">
+                <label>Nombre Archivo (Parcial):</label>
+                <input type="text" id="fi-filename" placeholder="Buscar por nombre...">
+            </div>
+            
+            <div class="filter-group" style="flex: 2;">
+                <label>Rango Ancho (cm):</label>
+                <div class="filter-group range">
+                    <input type="number" id="fi-ancho-min" placeholder="Min" step="0.1">
+                    <span>-</span>
+                    <input type="number" id="fi-ancho-max" placeholder="Max" step="0.1">
+                </div>
+            </div>
+
+            <div class="filter-group" style="flex: 2;">
+                <label>Rango Largo (cm):</label>
+                <div class="filter-group range">
+                    <input type="number" id="fi-largo-min" placeholder="Min" step="0.1">
+                    <span>-</span>
+                    <input type="number" id="fi-largo-max" placeholder="Max" step="0.1">
+                </div>
+            </div>
+
+            <div class="filter-actions" style="display: flex; gap: 8px;">
+                <button class="btn-apply" onclick="loadData()">Filtrar</button>
+                <button class="btn-clear" onclick="clearFilters()">Limpiar</button>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Registros de Hoy / Selección</div>
+                <div class="stat-value" id="stat-count">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Metros Lineales (ML)</div>
+                <div class="stat-value" id="stat-ml">0.00</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Metros Cuadrados (M²)</div>
+                <div class="stat-value" id="stat-m2">0.00</div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <div id="loading-indicator" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                Cargando datos de la Base de Datos SQLite...
+            </div>
+            <table class="view-table" id="data-table">
+                <thead>
+                    <tr>
+                        <th>N°</th>
+                        <th>Estado</th>
+                        <th>Máquina</th>
+                        <th>Archivo Original / Generado</th>
+                        <th>Ancho (cm)</th>
+                        <th>Largo (cm)</th>
+                        <th>Copias</th>
+                        <th>Fecha y Hora</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function clearFilters() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('fi-date-start').value = today;
+            document.getElementById('fi-date-end').value = today;
+            document.getElementById('fi-machine').value = '';
+            document.getElementById('fi-event').value = '';
+            document.getElementById('fi-filename').value = '';
+            document.getElementById('fi-ancho-min').value = '';
+            document.getElementById('fi-ancho-max').value = '';
+            document.getElementById('fi-largo-min').value = '';
+            document.getElementById('fi-largo-max').value = '';
+            loadData();
+        }
+
+        async function syncDatabase() {
+            const btnSync = document.getElementById('btn-sync');
+            const errorBox = document.getElementById('error-box');
+            const successBox = document.getElementById('success-box');
+            
+            btnSync.disabled = true;
+            btnSync.innerHTML = '<div class="spinner" style="width:16px; height:16px; border-width:2px;"></div> Sincronizando fuentes...';
+            errorBox.style.display = 'none';
+            successBox.style.display = 'none';
+
+            try {
+                const resp = await fetch('/api/sync');
+                if (!resp.ok) throw new Error('Error al sincronizar fuentes (' + resp.status + ')');
+                const result = await resp.json();
+                
+                if (result.status === 'ok') {
+                    successBox.style.display = 'block';
+                    successBox.textContent = '✅ Base de datos actualizada correctamente desde todas las fuentes.';
+                    setTimeout(() => { successBox.style.display = 'none'; }, 4000);
+                    await loadData();
+                } else {
+                    throw new Error(result.message || 'Error en la sincronización');
+                }
+            } catch (err) {
+                errorBox.style.display = 'block';
+                errorBox.innerHTML = `<strong>Error de Sincronización:</strong> ${err.message}`;
+            } finally {
+                btnSync.disabled = false;
+                btnSync.innerHTML = `
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.92-10.26l5.08 5.08"/>
+                    </svg>
+                    Actualizar Base de Datos
+                `;
+            }
+        }
+
+        async function loadData() {
+            const tableBody = document.getElementById('table-body');
+            const dataTable = document.getElementById('data-table');
+            const loading = document.getElementById('loading-indicator');
+            const errorBox = document.getElementById('error-box');
+
+            loading.style.display = 'flex';
+            dataTable.style.display = 'none';
+            errorBox.style.display = 'none';
+
+            try {
+                const params = new URLSearchParams();
+                
+                const dStart = document.getElementById('fi-date-start').value;
+                if (dStart) params.append('date_start', dStart);
+                
+                const dEnd = document.getElementById('fi-date-end').value;
+                if (dEnd) params.append('date_end', dEnd);
+                
+                const dMach = document.getElementById('fi-machine').value;
+                if (dMach) params.append('machine', dMach);
+
+                const dEve = document.getElementById('fi-event').value;
+                if (dEve) params.append('evento', dEve);
+
+                const dFile = document.getElementById('fi-filename').value;
+                if (dFile) params.append('filename', dFile);
+
+                const wM = document.getElementById('fi-ancho-min').value;
+                if (wM) params.append('ancho_min', wM);
+                
+                const wX = document.getElementById('fi-ancho-max').value;
+                if (wX) params.append('ancho_max', wX);
+
+                const lM = document.getElementById('fi-largo-min').value;
+                if (lM) params.append('largo_min', lM);
+
+                const lX = document.getElementById('fi-largo-max').value;
+                if (lX) params.append('largo_max', lX);
+
+                const response = await fetch('/api/sql_riplog?' + params.toString());
+                if (!response.ok) throw new Error('Error al cargar datos BD (' + response.status + ')');
+
+                const payload = await response.json();
+                const data = payload.logJobs || [];
+                
+                let totalML = 0;
+                let totalM2 = 0;
+                
+                tableBody.innerHTML = '';
+                
+                data.forEach((ev, idx) => {
+                    let w = parseFloat(ev.width) || 0;
+                    let l = parseFloat(ev.length) || 0;
+                    let c = parseInt(ev.copias) || 1;
+
+                    if (ev.state.toUpperCase() === 'RIP') {
+                        // El RIPLOG nativo entrega valores en milímetros (mm), convertimos a cm
+                        w = w / 10;
+                        l = l / 10;
+                    }
+
+                    w = parseFloat(w.toFixed(2));
+                    l = parseFloat(l.toFixed(2));
+
+                    const tr = document.createElement('tr');
+                    const badgeClass = ev.state.toUpperCase() === 'RIP' ? 'rip' : 'print';
+                    tr.innerHTML = `
+                        <td>${data.length - idx}</td>
+                        <td><span class="badge ${badgeClass}">${ev.state}</span></td>
+                        <td><span style="color:#10b981; font-weight:600;">${ev.machineName}</span></td>
+                        <td title="${ev.fileName}"><span class="filename">${ev.fileName.split('\\\\').pop()}</span></td>
+                        <td>${w > 0 ? w : '-'}</td>
+                        <td>${l > 0 ? l : '-'}</td>
+                        <td>${c}</td>
+                        <td>${ev.startTime}</td>
+                    `;
+                    tableBody.appendChild(tr);
+
+                    if (w > 0 && l > 0) {
+                        totalML += (l / 100) * c;
+                        totalM2 += ((w * l) / 10000) * c;
+                    }
+                });
+
+                document.getElementById('stat-count').textContent = data.length;
+                document.getElementById('stat-ml').textContent = totalML.toFixed(2);
+                document.getElementById('stat-m2').textContent = totalM2.toFixed(2);
+
+                loading.style.display = 'none';
+                dataTable.style.display = 'table';
+            } catch (err) {
+                loading.style.display = 'none';
+                errorBox.style.display = 'block';
+                errorBox.innerHTML = `<strong>Error de Consulta SQL:</strong> ${err.message}`;
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const today = new Date().toISOString().split('T')[0];
+            
+            if (urlParams.has('date_start')) {
+                document.getElementById('fi-date-start').value = urlParams.get('date_start');
+            } else if (!urlParams.has('date') && !urlParams.has('filename')) {
+                document.getElementById('fi-date-start').value = today;
+            }
+
+            if (urlParams.has('date_end')) {
+                document.getElementById('fi-date-end').value = urlParams.get('date_end');
+            } else if (!urlParams.has('date_start') && !urlParams.has('filename')) {
+                document.getElementById('fi-date-end').value = today;
+            }
+
+            if (urlParams.has('date')) {
+                document.getElementById('fi-date-start').value = urlParams.get('date');
+                document.getElementById('fi-date-end').value = urlParams.get('date');
+            }
+            
+            if (urlParams.has('filename')) document.getElementById('fi-filename').value = urlParams.get('filename');
+            if (urlParams.has('machine')) document.getElementById('fi-machine').value = urlParams.get('machine');
+            if (urlParams.has('evento')) document.getElementById('fi-event').value = urlParams.get('evento');
+            
+            loadData();
+        });
+    </script>
+</body>
+</html>
