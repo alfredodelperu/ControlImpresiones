@@ -325,7 +325,7 @@ namespace RipLogViewer
 
                                 // 2. TXT Log
                                 bool hasTxt = false;
-                                string txtStart = "", txtEnd = "", txtMode = "";
+                                string txtJobName = "", txtStart = "", txtEnd = "", txtMode = "";
                                 double txtW = 0, txtL = 0, txtProd = 0;
                                 int txtCopies = 1, txtCompleted = 0, txtTPass = 0, txtMPass = 0;
 
@@ -348,6 +348,7 @@ namespace RipLogViewer
                                             if (r.Read())
                                             {
                                                 hasTxt = true;
+                                                txtJobName = r["JobName"].ToString();
                                                 txtStart = r["StartTime"].ToString();
                                                 txtEnd = r["EndTime"].ToString();
                                                 txtMode = r["Mode"].ToString();
@@ -372,6 +373,7 @@ namespace RipLogViewer
                                                 if (r.Read())
                                                 {
                                                     hasTxt = true;
+                                                    txtJobName = r["JobName"].ToString();
                                                     txtStart = r["StartTime"].ToString();
                                                     txtEnd = r["EndTime"].ToString();
                                                     txtMode = r["Mode"].ToString();
@@ -391,7 +393,7 @@ namespace RipLogViewer
 
                                 // 3. TF Task
                                 bool hasTf = false;
-                                string tfStart = "", tfEnd = "", tfMode = "", tfImgPath = "";
+                                string tfJobName = "", tfStart = "", tfEnd = "", tfMode = "", tfImgPath = "";
                                 double tfW = 0, tfL = 0, tfProd = 0;
                                 int tfCompleted = 0;
 
@@ -414,6 +416,7 @@ namespace RipLogViewer
                                             if (r.Read())
                                             {
                                                 hasTf = true;
+                                                tfJobName = r["JobName"].ToString();
                                                 tfStart = r["StartTime"].ToString();
                                                 tfEnd = r["EndTime"].ToString();
                                                 tfMode = r["Mode"].ToString();
@@ -436,6 +439,7 @@ namespace RipLogViewer
                                                 if (r.Read())
                                                 {
                                                     hasTf = true;
+                                                    tfJobName = r["JobName"].ToString();
                                                     tfStart = r["StartTime"].ToString();
                                                     tfEnd = r["EndTime"].ToString();
                                                     tfMode = r["Mode"].ToString();
@@ -451,10 +455,11 @@ namespace RipLogViewer
                                 }
                                 catch { }
 
-                                string txtJson = "null";
+                                 string txtJson = "null";
                                 if (hasTxt)
                                 {
                                     txtJson = "{"
+                                        + "\"jobName\":\"" + HttpUtility.JavaScriptStringEncode(txtJobName) + "\","
                                         + "\"startTime\":\"" + HttpUtility.JavaScriptStringEncode(txtStart) + "\","
                                         + "\"endTime\":\"" + HttpUtility.JavaScriptStringEncode(txtEnd) + "\","
                                         + "\"mode\":\"" + HttpUtility.JavaScriptStringEncode(txtMode) + "\","
@@ -472,6 +477,7 @@ namespace RipLogViewer
                                 if (hasTf)
                                 {
                                     tfJson = "{"
+                                        + "\"jobName\":\"" + HttpUtility.JavaScriptStringEncode(tfJobName) + "\","
                                         + "\"startTime\":\"" + HttpUtility.JavaScriptStringEncode(tfStart) + "\","
                                         + "\"endTime\":\"" + HttpUtility.JavaScriptStringEncode(tfEnd) + "\","
                                         + "\"mode\":\"" + HttpUtility.JavaScriptStringEncode(tfMode) + "\","

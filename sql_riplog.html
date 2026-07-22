@@ -476,6 +476,20 @@
                 const txt = info.txtLog || null;
                 const tf = info.tfTask || null;
 
+                const realPrtName = (tf && tf.jobName) ? tf.jobName : ((txt && txt.jobName) ? txt.jobName : (cleanName !== 'Desconocido' ? cleanName : '-'));
+
+                let wNum = parseFloat(info.width || 0);
+                let lNum = parseFloat(info.length || 0);
+
+                if (wNum <= 0 && txt && parseFloat(txt.width) > 0) wNum = parseFloat(txt.width);
+                if (wNum <= 0 && tf && parseFloat(tf.width) > 0) wNum = parseFloat(tf.width);
+
+                if (lNum <= 0 && txt && parseFloat(txt.length) > 0) lNum = parseFloat(txt.length);
+                if (lNum <= 0 && tf && parseFloat(tf.length) > 0) lNum = parseFloat(tf.length);
+
+                const wStr = wNum > 0 ? wNum.toFixed(2) + ' cm' : '-';
+                const lStr = lNum > 0 ? lNum.toFixed(2) + ' cm' : '-';
+
                 let txtHtml = '';
                 if (txt) {
                     const statusText = txt.completed === 1 ? '✅ Completado (100%)' : '⚠️ Incompleto / Cancelado (' + (txt.productionRatio || 0) + '%)';
@@ -515,10 +529,13 @@
                 modalBody.innerHTML = `
                     <div style="background:rgba(59,130,246,0.1); padding:1rem; border-radius:8px; border:1px solid rgba(59,130,246,0.2); margin-bottom:1rem;">
                         <div style="font-size:1.1rem; font-weight:700; color:#f8fafc;">📄 ${cleanName}</div>
+                        <div style="font-size:0.9rem; font-weight:600; color:#3b82f6; margin-top:4px; margin-bottom:6px;">
+                            📁 Archivo real (.prt / .bmp): <span style="color:#f8fafc;">${realPrtName}</span>
+                        </div>
                         <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:4px;">
                             Impresora: <strong style="color:#10b981;">${info.machineName || 'Servidor'}</strong> | 
                             Fecha/Hora Envío: <strong>${info.startTime || '-'}</strong> | 
-                            Dimensiones: <strong>${info.width || '-'} cm x ${info.length || '-'} cm</strong> | 
+                            Dimensiones: <strong>${wStr} x ${lStr}</strong> | 
                             Copias: <strong>${info.copias || 1}</strong>
                         </div>
                     </div>
