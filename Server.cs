@@ -1689,7 +1689,28 @@ namespace RipLogViewer
             var pendingIds = new List<string>();
             var payloads = new List<string>();
 
-            string sql = "SELECT *, rowid as TrueRowId FROM " + tableName + " WHERE sincronizado = 0 AND (StartTime LIKE '" + today.Replace("-", "/") + "%' OR StartTime LIKE '" + today.Replace("/", "-") + "%') ORDER BY rowid ASC LIMIT 200";
+            string tDash = today.Replace("/", "-");
+            string tSlash = today.Replace("-", "/");
+            string tDdMm = "";
+            DateTime dtParsed;
+            if (DateTime.TryParse(today, out dtParsed)) {
+                tDdMm = dtParsed.ToString("dd/MM/yyyy");
+            } else {
+                string[] parts = today.Split(new char[] { '-', '/' });
+                if (parts.Length == 3 && parts[0].Length == 4) {
+                    tDdMm = parts[2] + "/" + parts[1] + "/" + parts[0];
+                }
+            }
+            string tDdMmDash = string.IsNullOrEmpty(tDdMm) ? "" : tDdMm.Replace("/", "-");
+
+            string dateCond = string.Format(
+                "(StartTime LIKE '{0}%' OR StartTime LIKE '{1}%'" +
+                (string.IsNullOrEmpty(tDdMm) ? "" : " OR StartTime LIKE '{2}%'") +
+                (string.IsNullOrEmpty(tDdMmDash) ? "" : " OR StartTime LIKE '{3}%'") + ")",
+                tDash, tSlash, tDdMm, tDdMmDash
+            );
+
+            string sql = "SELECT *, rowid as TrueRowId FROM " + tableName + " WHERE (sincronizado = 0 OR sincronizado IS NULL) AND " + dateCond + " ORDER BY rowid ASC LIMIT 200";
             using (var cmd = new SQLiteCommand(sql, conn))
             {
                 using (var reader = cmd.ExecuteReader())
