@@ -1591,7 +1591,7 @@ namespace RipLogViewer
             }
         }
 
-        private static void SyncOracleApex()
+        public static void SyncOracleApex()
         {
             string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.txt");
             string apexBaseUrl = "https://g0b98d8ee45b90d-db5ncy1.adb.us-sanjose-1.oraclecloudapps.com/ords/fullcolor";
