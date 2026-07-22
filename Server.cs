@@ -1932,22 +1932,24 @@ namespace RipLogViewer
                             if (string.IsNullOrEmpty(job.Name) || job.StartTime == "-") continue;
 
                             string id = job.Name + "_" + job.StartTime.Replace("/", "").Replace(":", "").Replace(" ", "");
+                            string safeImageName = Regex.Replace(id, @"[^a-zA-Z0-9_\-]", "_") + ".jpg";
+                            string destPath = Path.Combine(imgCacheDir, safeImageName);
                             string localImg = "";
 
-                            if (!string.IsNullOrEmpty(job.BmpPath) && File.Exists(job.BmpPath))
+                            if (File.Exists(destPath))
                             {
-                                string extension = ".jpg";
-                                string uniqueName = Guid.NewGuid().ToString("N") + extension;
-                                string destPath = Path.Combine(imgCacheDir, uniqueName);
-                                
+                                localImg = "/img_cache/" + safeImageName;
+                            }
+                            else if (!string.IsNullOrEmpty(job.BmpPath) && File.Exists(job.BmpPath))
+                            {
                                 try
                                 {
-                                    // Convierte BMP a JPG 1:1 en disco usando System.Drawing
+                                    // Solo convierte BMP a JPG si no ha sido generado anteriormente
                                     using (System.Drawing.Image img = System.Drawing.Image.FromFile(job.BmpPath))
                                     {
                                         img.Save(destPath, System.Drawing.Imaging.ImageFormat.Jpeg);
                                     }
-                                    localImg = "/img_cache/" + uniqueName;
+                                    localImg = "/img_cache/" + safeImageName;
                                 }
                                 catch { }
                             }
