@@ -169,15 +169,7 @@
                 </div>
             </div>
 
-            <div class="filter-group" style="min-width: 200px;">
-                <label>Impresora / Máquina:</label>
-                <select id="fi-machine">
-                    <option value="">Todas las Impresoras</option>
-                    <option value="QU-DTFUV1">QU-DTFUV1 (192.168.100.155)</option>
-                    <option value="QU-DTFUV2">QU-DTFUV2 (192.168.100.59)</option>
-                    <option value="pvuvrollo">pvuvrollo (192.168.1.231)</option>
-                </select>
-            </div>
+
 
             <div class="filter-group">
                 <label>Evento:</label>
@@ -365,7 +357,8 @@
                 const payload = await response.json();
                 const data = payload.logJobs || [];
 
-                const selectedMachine = document.getElementById('fi-machine').value;
+                const fiMach = document.getElementById('fi-machine');
+                const selectedMachine = fiMach ? fiMach.value : '';
                 const activeMachine = selectedMachine || payload.machineName || '';
                 const machineTag = document.getElementById('machine-name-tag');
                 if (machineTag) {
