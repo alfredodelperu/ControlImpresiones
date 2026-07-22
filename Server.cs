@@ -1024,8 +1024,8 @@ namespace RipLogViewer
 
             // Puede venir como [14:03:58] o [2026/03/06 14:03:58]
             Regex timeRegex = new Regex(@"(\d{2}:\d{2}:\d{2})\]");
-            // Puede estar entre corchetes o el nombre crudo de prt
-            Regex fileRegex = new Regex(@"作业【([^】]+)】|启动任务：([^ ]+)");
+            // Puede estar entre corchetes o el nombre crudo de prt con espacios (启动任务 / 打印任务)
+            Regex fileRegex = new Regex(@"作业【([^】]+)】|(?:启动任务|打印任务)：(.+)");
             // Nueva versión de Info: 任务精度:360 X 600,图像大小:299.86mm X 16.93mm,颜色数:0,模式:1Pass
             Regex infoRegex = new Regex(@"图像大小:([\d.]+)mm X ([\d.]+)mm(.*?([0-9a-zA-Z_]+Pass)[^,]*)?");
             Regex totalPassRegex = new Regex(@"pInitParam->nTotalPrintPass=(\d+)");
@@ -1111,7 +1111,8 @@ namespace RipLogViewer
                 if (job.Name == "No encontrada") {
                     Match mFile = fileRegex.Match(line);
                     if (mFile.Success) {
-                        job.Name = !string.IsNullOrEmpty(mFile.Groups[1].Value) ? mFile.Groups[1].Value : mFile.Groups[2].Value;
+                        string rawName = !string.IsNullOrEmpty(mFile.Groups[1].Value) ? mFile.Groups[1].Value : mFile.Groups[2].Value;
+                        if (!string.IsNullOrWhiteSpace(rawName)) job.Name = rawName.Trim();
                     } 
                     else if (line.Contains(":\\") && line.EndsWith(".prt", StringComparison.OrdinalIgnoreCase)) {
                         // Respaldo de busqueda de ruta windows tipica si el regex falla
