@@ -330,7 +330,8 @@
                 const dEnd = document.getElementById('fi-date-end').value;
                 if (dEnd) params.append('date_end', dEnd);
                 
-                const dMach = document.getElementById('fi-machine').value;
+                const fiMachEl = document.getElementById('fi-machine');
+                const dMach = fiMachEl ? fiMachEl.value : '';
                 if (dMach) params.append('machine', dMach);
 
                 const dEve = document.getElementById('fi-event').value;
@@ -443,7 +444,7 @@
             }
             
             if (urlParams.has('filename')) document.getElementById('fi-filename').value = urlParams.get('filename');
-            if (urlParams.has('machine')) document.getElementById('fi-machine').value = urlParams.get('machine');
+            if (urlParams.has('machine') && document.getElementById('fi-machine')) document.getElementById('fi-machine').value = urlParams.get('machine');
             if (urlParams.has('evento')) document.getElementById('fi-event').value = urlParams.get('evento');
             
             loadData();
