@@ -293,6 +293,36 @@ namespace RipLogViewer
                                     debugLog += "[RipLog OK] ";
                                 } catch (Exception ex1) { debugLog += "[RipLog Err: " + ex1.Message + "] "; }
 
+                                // Formatear fecha y hora para coincidir con FechaPrt y StartTime en SQLite
+                                string dtDash = "", dtSlash = "", dtDisp = "";
+                                if (!string.IsNullOrWhiteSpace(starttime))
+                                {
+                                    DateTime dtParsed;
+                                    string[] p = starttime.Trim().Split(' ');
+                                    if (p.Length >= 2)
+                                    {
+                                        string[] dParts = p[0].Split(new char[] { '/', '-' });
+                                        string[] tParts = p[1].Split(':');
+                                        if (dParts.Length == 3 && tParts.Length >= 2)
+                                        {
+                                            try
+                                            {
+                                                int y = int.Parse(dParts[0].Length == 4 ? dParts[0] : dParts[2]);
+                                                int m = int.Parse(dParts[1]);
+                                                int d = int.Parse(dParts[0].Length == 4 ? dParts[2] : dParts[0]);
+                                                int hh = int.Parse(tParts[0]);
+                                                int mm = int.Parse(tParts[1]);
+                                                int ss = tParts.Length >= 3 ? int.Parse(tParts[2]) : 0;
+                                                dtParsed = new DateTime(y, m, d, hh, mm, ss);
+                                                dtDash = dtParsed.ToString("yyyy-MM-dd HH:mm");
+                                                dtSlash = dtParsed.ToString("yyyy/MM/dd HH:mm");
+                                                dtDisp = dtParsed.ToString("dd/MM/yyyy HH:mm");
+                                            }
+                                            catch { }
+                                        }
+                                    }
+                                }
+
                                 // 2. TXT Log
                                 bool hasTxt = false;
                                 string txtStart = "", txtEnd = "", txtMode = "";
@@ -301,7 +331,17 @@ namespace RipLogViewer
 
                                 try
                                 {
-                                    using (var cmd = new SQLiteCommand("SELECT * FROM logtxt WHERE JobName LIKE '%" + safeName + "%' ORDER BY StartTime DESC LIMIT 1", conn))
+                                    string txtQuery = "";
+                                    if (!string.IsNullOrEmpty(dtDash))
+                                    {
+                                        txtQuery = "SELECT * FROM logtxt WHERE (FechaPrt LIKE '" + dtDash + "%' OR FechaPrt LIKE '" + dtSlash + "%' OR FechaPrt LIKE '%" + dtDisp + "%' OR StartTime LIKE '" + dtDash + "%' OR StartTime LIKE '" + dtSlash + "%' OR StartTime LIKE '%" + dtDisp + "%') ORDER BY rowid DESC LIMIT 1";
+                                    }
+                                    else
+                                    {
+                                        txtQuery = "SELECT * FROM logtxt WHERE JobName LIKE '%" + safeName + "%' ORDER BY StartTime DESC LIMIT 1";
+                                    }
+
+                                    using (var cmd = new SQLiteCommand(txtQuery, conn))
                                     {
                                         using (var r = cmd.ExecuteReader())
                                         {
@@ -321,9 +361,33 @@ namespace RipLogViewer
                                             }
                                         }
                                     }
-                                    debugLog += "[TxtLog OK] ";
+
+                                    // Fallback por nombre si no hubo coincidencia por fecha
+                                    if (!hasTxt && !string.IsNullOrEmpty(dtDash))
+                                    {
+                                        using (var cmd = new SQLiteCommand("SELECT * FROM logtxt WHERE JobName LIKE '%" + safeName + "%' ORDER BY StartTime DESC LIMIT 1", conn))
+                                        {
+                                            using (var r = cmd.ExecuteReader())
+                                            {
+                                                if (r.Read())
+                                                {
+                                                    hasTxt = true;
+                                                    txtStart = r["StartTime"].ToString();
+                                                    txtEnd = r["EndTime"].ToString();
+                                                    txtMode = r["Mode"].ToString();
+                                                    double.TryParse(r["Width"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out txtW);
+                                                    double.TryParse(r["Length"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out txtL);
+                                                    double.TryParse(r["ProductionRatio"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out txtProd);
+                                                    try { txtCopies = Convert.ToInt32(r["Copies"]); } catch {}
+                                                    try { txtCompleted = Convert.ToInt32(r["Completed"]); } catch {}
+                                                    try { txtTPass = Convert.ToInt32(r["TotalPass"]); } catch {}
+                                                    try { txtMPass = Convert.ToInt32(r["MaxPass"]); } catch {}
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
-                                catch (Exception ex2) { debugLog += "[TxtLog Err: " + ex2.Message + "] "; }
+                                catch { }
 
                                 // 3. TF Task
                                 bool hasTf = false;
@@ -333,7 +397,17 @@ namespace RipLogViewer
 
                                 try
                                 {
-                                    using (var cmd = new SQLiteCommand("SELECT * FROM historialtf WHERE JobName LIKE '%" + safeName + "%' ORDER BY StartTime DESC LIMIT 1", conn))
+                                    string tfQuery = "";
+                                    if (!string.IsNullOrEmpty(dtDash))
+                                    {
+                                        tfQuery = "SELECT * FROM historialtf WHERE (FechaPrt LIKE '" + dtDash + "%' OR FechaPrt LIKE '" + dtSlash + "%' OR FechaPrt LIKE '%" + dtDisp + "%' OR StartTime LIKE '" + dtDash + "%' OR StartTime LIKE '" + dtSlash + "%' OR StartTime LIKE '%" + dtDisp + "%') ORDER BY rowid DESC LIMIT 1";
+                                    }
+                                    else
+                                    {
+                                        tfQuery = "SELECT * FROM historialtf WHERE JobName LIKE '%" + safeName + "%' ORDER BY StartTime DESC LIMIT 1";
+                                    }
+
+                                    using (var cmd = new SQLiteCommand(tfQuery, conn))
                                     {
                                         using (var r = cmd.ExecuteReader())
                                         {
@@ -351,9 +425,31 @@ namespace RipLogViewer
                                             }
                                         }
                                     }
-                                    debugLog += "[TfTask OK] ";
+
+                                    // Fallback por nombre si no hubo coincidencia por fecha
+                                    if (!hasTf && !string.IsNullOrEmpty(dtDash))
+                                    {
+                                        using (var cmd = new SQLiteCommand("SELECT * FROM historialtf WHERE JobName LIKE '%" + safeName + "%' ORDER BY StartTime DESC LIMIT 1", conn))
+                                        {
+                                            using (var r = cmd.ExecuteReader())
+                                            {
+                                                if (r.Read())
+                                                {
+                                                    hasTf = true;
+                                                    tfStart = r["StartTime"].ToString();
+                                                    tfEnd = r["EndTime"].ToString();
+                                                    tfMode = r["Mode"].ToString();
+                                                    tfImgPath = r["LocalImagePath"].ToString();
+                                                    double.TryParse(r["Width"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out tfW);
+                                                    double.TryParse(r["Length"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out tfL);
+                                                    double.TryParse(r["ProductionRatio"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out tfProd);
+                                                    try { tfCompleted = Convert.ToInt32(r["Completed"]); } catch {}
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
-                                catch (Exception ex3) { debugLog += "[TfTask Err: " + ex3.Message + "] "; }
+                                catch { }
 
                                 string txtJson = "null";
                                 if (hasTxt)
