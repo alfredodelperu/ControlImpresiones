@@ -960,6 +960,7 @@ namespace RipLogViewer
                         DatabaseManager.SyncRipLog(ripDirSync);
                         DatabaseManager.SyncHistorialTf(printExpDirSync);
                         DatabaseManager.SyncLogTxt(logTxtDirSync, printExpDirSync);
+                        DatabaseManager.SyncOracleApex();
 
                         string machineName = Environment.MachineName;
                         string json = string.Format("{{\"status\":\"ok\",\"message\":\"Sincronización completada exitosamente\",\"machineName\":\"{0}\"}}", HttpUtility.JavaScriptStringEncode(machineName));
