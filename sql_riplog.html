@@ -473,57 +473,99 @@
                 const info = await resp.json();
 
                 const cleanName = info.fileName ? info.fileName.split('\\\\').pop().split('/').pop() : 'Desconocido';
-                const txt = info.txtLog || null;
-                const tf = info.tfTask || null;
+                const txtLogs = info.txtLogs || [];
+                const tfTasks = info.tfTasks || [];
 
-                const realPrtName = (tf && tf.jobName) ? tf.jobName : ((txt && txt.jobName) ? txt.jobName : (cleanName !== 'Desconocido' ? cleanName : '-'));
+                const realPrtName = (tfTasks.length > 0 && tfTasks[0].jobName) ? tfTasks[0].jobName : ((txtLogs.length > 0 && txtLogs[0].jobName) ? txtLogs[0].jobName : (cleanName !== 'Desconocido' ? cleanName : '-'));
 
                 let wNum = parseFloat(info.width || 0);
                 let lNum = parseFloat(info.length || 0);
 
-                if (wNum <= 0 && txt && parseFloat(txt.width) > 0) wNum = parseFloat(txt.width);
-                if (wNum <= 0 && tf && parseFloat(tf.width) > 0) wNum = parseFloat(tf.width);
+                if (wNum <= 0 && txtLogs.length > 0 && parseFloat(txtLogs[0].width) > 0) wNum = parseFloat(txtLogs[0].width);
+                if (wNum <= 0 && tfTasks.length > 0 && parseFloat(tfTasks[0].width) > 0) wNum = parseFloat(tfTasks[0].width);
 
-                if (lNum <= 0 && txt && parseFloat(txt.length) > 0) lNum = parseFloat(txt.length);
-                if (lNum <= 0 && tf && parseFloat(tf.length) > 0) lNum = parseFloat(tf.length);
+                if (lNum <= 0 && txtLogs.length > 0 && parseFloat(txtLogs[0].length) > 0) lNum = parseFloat(txtLogs[0].length);
+                if (lNum <= 0 && tfTasks.length > 0 && parseFloat(tfTasks[0].length) > 0) lNum = parseFloat(tfTasks[0].length);
 
                 const wStr = wNum > 0 ? wNum.toFixed(2) + ' cm' : '-';
                 const lStr = lNum > 0 ? lNum.toFixed(2) + ' cm' : '-';
 
-                let txtHtml = '';
-                if (txt) {
-                    const statusText = txt.completed === 1 ? '✅ Completado (100%)' : '⚠️ Incompleto / Cancelado (' + (txt.productionRatio || 0) + '%)';
-                    txtHtml = `
-                        <div class="detail-item"><span>Estado:</span> ${statusText}</div>
-                        <div class="detail-item"><span>Hora Inicio:</span> ${txt.startTime || '-'}</div>
-                        <div class="detail-item"><span>Hora Fin:</span> ${txt.endTime || '-'}</div>
-                        <div class="detail-item"><span>Modo de Impresión:</span> ${txt.mode || '-'}</div>
-                        <div class="detail-item"><span>Copias Solicitadas:</span> ${txt.copies || 1}</div>
-                        <div class="detail-item"><span>Pasadas (Pass):</span> ${txt.totalPass || '-'} / ${txt.maxPass || '-'}</div>
-                    `;
-                } else {
-                    txtHtml = '<div class="detail-item" style="color:var(--text-secondary);">Sin registros en los logs de impresión .TXT</div>';
+                // Buscar miniatura en tfTasks
+                let previewImgPath = "";
+                for (let t of tfTasks) {
+                    if (t.localImagePath) { previewImgPath = t.localImagePath; break; }
                 }
 
-                let tfHtml = '';
-                if (tf) {
-                    tfHtml = `
-                        <div class="detail-item"><span>Modo / Resolución:</span> ${tf.mode || '-'}</div>
-                        <div class="detail-item"><span>Rendimiento:</span> ${tf.productionRatio || 0}%</div>
-                        <div class="detail-item"><span>Inicio Tarea TF:</span> ${tf.startTime || '-'}</div>
-                    `;
-                } else {
-                    tfHtml = '<div class="detail-item" style="color:var(--text-secondary);">Sin archivo binario de tarea .TF vinculado</div>';
-                }
-
-                let imgPreviewHtml = '';
-                if (tf && tf.localImagePath) {
+                let imgPreviewHtml = "";
+                if (previewImgPath) {
                     imgPreviewHtml = `
-                        <div class="detail-box" style="grid-column: 1 / -1; text-align: center;">
-                            <h4>🖼️ Vista Previa Miniatura (Task TF)</h4>
-                            <img src="${tf.localImagePath}" alt="Miniatura de Impresión" style="max-width:100%; max-height:220px; border-radius:6px; border:1px solid var(--border); margin-top:8px;" />
+                        <div style="text-align: center; margin-bottom:1rem;">
+                            <div style="font-size:0.85rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">🖼️ Vista Previa Miniatura (Task TF)</div>
+                            <img src="${previewImgPath}" alt="Miniatura de Impresión" style="max-width:100%; max-height:220px; border-radius:6px; border:1px solid var(--border);" />
                         </div>
                     `;
+                }
+
+                // Armar la lista de ejecuciones físicas combinadas
+                let executionItemsHtml = '';
+                const maxExecs = Math.max(txtLogs.length, tfTasks.length);
+
+                if (maxExecs === 0) {
+                    executionItemsHtml = '<div style="color:var(--text-secondary); padding:1rem; text-align:center;">No se registraron ejecuciones físicas en los logs de la máquina para este archivo .prt.</div>';
+                } else {
+                    for (let i = 0; i < maxExecs; i++) {
+                        const txt = txtLogs[i] || null;
+                        const tf = tfTasks[i] || null;
+
+                        const execNum = i + 1;
+                        const startTimeStr = (txt && txt.startTime) ? txt.startTime : ((tf && tf.startTime) ? tf.startTime : '-');
+                        const isCompleted = (txt && txt.completed === 1) || (tf && tf.completed === 1);
+                        const prodRatio = (tf && tf.productionRatio > 0) ? tf.productionRatio : (txt ? txt.productionRatio : 0);
+                        
+                        const badgeColor = isCompleted ? '#10b981' : '#f59e0b';
+                        const statusBadge = isCompleted ? '✅ Completado (100%)' : `⚠️ Incompleto / Cancelado (${prodRatio}%)`;
+
+                        let txtInfoHtml = txt ? `
+                            <div style="font-size:0.85rem; background:rgba(15,23,42,0.6); padding:8px; border-radius:6px; border:1px solid var(--border);">
+                                <div style="font-weight:600; color:var(--accent); margin-bottom:4px;">⏱️ Log .TXT (Máquina)</div>
+                                <div>Hora Inicio: <strong>${txt.startTime || '-'}</strong> | Fin: <strong>${txt.endTime || '-'}</strong></div>
+                                <div>Pasadas: <strong>${txt.maxPass || '-'} / ${txt.totalPass || '-'}</strong> | Copias: <strong>${txt.copies || 1}</strong></div>
+                            </div>
+                        ` : '<div style="font-size:0.8rem; color:var(--text-secondary);">Sin log de texto .TXT</div>';
+
+                        let tfInfoHtml = tf ? `
+                            <div style="font-size:0.85rem; background:rgba(15,23,42,0.6); padding:8px; border-radius:6px; border:1px solid var(--border);">
+                                <div style="font-weight:600; color:#10b981; margin-bottom:4px;">⚙️ Tarea .TF (Firmware)</div>
+                                <div>Hora Tarea: <strong>${tf.startTime || '-'}</strong> | Modo: <strong>${tf.mode || '-'}</strong></div>
+                                <div>Rendimiento Firmware: <strong>${tf.productionRatio || 0}%</strong></div>
+                            </div>
+                        ` : '<div style="font-size:0.8rem; color:var(--text-secondary);">Sin binario de tarea .TF</div>';
+
+                        let validationText = "";
+                        if (txt && tf) {
+                            validationText = "✅ Coincidencia Confirmada entre Log .TXT y Tarea .TF";
+                        } else if (txt) {
+                            validationText = "ℹ️ Registrado solo en Log .TXT";
+                        } else {
+                            validationText = "ℹ️ Registrado solo en Tarea .TF";
+                        }
+
+                        executionItemsHtml += `
+                            <div style="background:var(--surface-hover); border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:12px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:6px; margin-bottom:8px;">
+                                    <span style="font-weight:700; font-size:0.95rem; color:#f8fafc;">📍 Intento de Impresión #${execNum} (${startTimeStr})</span>
+                                    <span style="background:${badgeColor}22; color:${badgeColor}; border:1px solid ${badgeColor}; padding:2px 8px; border-radius:12px; font-size:0.8rem; font-weight:600;">${statusBadge}</span>
+                                </div>
+                                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:8px;">
+                                    ${txtInfoHtml}
+                                    ${tfInfoHtml}
+                                </div>
+                                <div style="font-size:0.75rem; color:var(--text-secondary); text-align:right; font-style:italic;">
+                                    ${validationText}
+                                </div>
+                            </div>
+                        `;
+                    }
                 }
 
                 modalBody.innerHTML = `
@@ -536,19 +578,15 @@
                             Impresora: <strong style="color:#10b981;">${info.machineName || 'Servidor'}</strong> | 
                             Fecha/Hora Envío: <strong>${info.startTime || '-'}</strong> | 
                             Dimensiones: <strong>${wStr} x ${lStr}</strong> | 
-                            Copias: <strong>${info.copias || 1}</strong>
+                            Copias FlexiPrint: <strong>${info.copias || 1}</strong>
                         </div>
                     </div>
-                    <div class="modal-grid">
-                        <div class="detail-box">
-                            <h4>⏱️ Métricas de Impresión (Log .TXT)</h4>
-                            ${txtHtml}
-                        </div>
-                        <div class="detail-box">
-                            <h4>⚙️ Parámetros de Tarea (.TF)</h4>
-                            ${tfHtml}
-                        </div>
-                        ${imgPreviewHtml}
+                    ${imgPreviewHtml}
+                    <div style="margin-top:1rem;">
+                        <h4 style="font-size:1rem; font-weight:700; color:#f8fafc; margin-bottom:10px; border-bottom:1px solid var(--border); padding-bottom:4px;">
+                            📊 Historial de Impresiones Físicas (${maxExecs} Intento${maxExecs !== 1 ? 's' : ''})
+                        </h4>
+                        ${executionItemsHtml}
                     </div>
                 `;
             } catch (err) {

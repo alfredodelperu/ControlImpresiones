@@ -323,67 +323,94 @@ namespace RipLogViewer
                                     }
                                 }
 
-                                // 2. TXT Log
-                                bool hasTxt = false;
-                                string txtJobName = "", txtStart = "", txtEnd = "", txtMode = "";
-                                double txtW = 0, txtL = 0, txtProd = 0;
-                                int txtCopies = 1, txtCompleted = 0, txtTPass = 0, txtMPass = 0;
-
+                                // 2. TXT Logs List
+                                var txtList = new List<string>();
                                 try
                                 {
                                     string txtQuery = "";
                                     if (!string.IsNullOrEmpty(dtDash))
                                     {
-                                        txtQuery = "SELECT * FROM logtxt WHERE (FechaPrt LIKE '" + dtDash + "%' OR FechaPrt LIKE '" + dtSlash + "%' OR FechaPrt LIKE '%" + dtDisp + "%' OR StartTime LIKE '" + dtDash + "%' OR StartTime LIKE '" + dtSlash + "%' OR StartTime LIKE '%" + dtDisp + "%') ORDER BY rowid DESC LIMIT 1";
+                                        txtQuery = "SELECT * FROM logtxt WHERE (FechaPrt LIKE '" + dtDash + "%' OR FechaPrt LIKE '" + dtSlash + "%' OR FechaPrt LIKE '%" + dtDisp + "%' OR StartTime LIKE '" + dtDash + "%' OR StartTime LIKE '" + dtSlash + "%' OR StartTime LIKE '%" + dtDisp + "%') ORDER BY StartTime ASC";
                                     }
                                     else
                                     {
-                                        txtQuery = "SELECT * FROM logtxt WHERE JobName LIKE '%" + safeName + "%' ORDER BY StartTime DESC LIMIT 1";
+                                        txtQuery = "SELECT * FROM logtxt WHERE JobName LIKE '%" + safeName + "%' ORDER BY StartTime ASC";
                                     }
 
                                     using (var cmd = new SQLiteCommand(txtQuery, conn))
                                     {
                                         using (var r = cmd.ExecuteReader())
                                         {
-                                            if (r.Read())
+                                            while (r.Read())
                                             {
-                                                hasTxt = true;
-                                                txtJobName = r["JobName"].ToString();
-                                                txtStart = r["StartTime"].ToString();
-                                                txtEnd = r["EndTime"].ToString();
-                                                txtMode = r["Mode"].ToString();
-                                                double.TryParse(r["Width"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out txtW);
-                                                double.TryParse(r["Length"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out txtL);
-                                                double.TryParse(r["ProductionRatio"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out txtProd);
-                                                try { txtCopies = Convert.ToInt32(r["Copies"]); } catch {}
-                                                try { txtCompleted = Convert.ToInt32(r["Completed"]); } catch {}
-                                                try { txtTPass = Convert.ToInt32(r["TotalPass"]); } catch {}
-                                                try { txtMPass = Convert.ToInt32(r["MaxPass"]); } catch {}
+                                                string tJn = r["JobName"].ToString();
+                                                string tSt = r["StartTime"].ToString();
+                                                string tEd = r["EndTime"].ToString();
+                                                string tMd = r["Mode"].ToString();
+                                                double tw = 0, tl = 0, tprod = 0;
+                                                double.TryParse(r["Width"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out tw);
+                                                double.TryParse(r["Length"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out tl);
+                                                double.TryParse(r["ProductionRatio"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out tprod);
+                                                int tc = 1, tcomp = 0, ttp = 0, tmp = 0;
+                                                try { tc = Convert.ToInt32(r["Copies"]); } catch {}
+                                                try { tcomp = Convert.ToInt32(r["Completed"]); } catch {}
+                                                try { ttp = Convert.ToInt32(r["TotalPass"]); } catch {}
+                                                try { tmp = Convert.ToInt32(r["MaxPass"]); } catch {}
+
+                                                string item = "{"
+                                                    + "\"jobName\":\"" + HttpUtility.JavaScriptStringEncode(tJn) + "\","
+                                                    + "\"startTime\":\"" + HttpUtility.JavaScriptStringEncode(tSt) + "\","
+                                                    + "\"endTime\":\"" + HttpUtility.JavaScriptStringEncode(tEd) + "\","
+                                                    + "\"mode\":\"" + HttpUtility.JavaScriptStringEncode(tMd) + "\","
+                                                    + "\"width\":" + tw.ToString(CultureInfo.InvariantCulture) + ","
+                                                    + "\"length\":" + tl.ToString(CultureInfo.InvariantCulture) + ","
+                                                    + "\"copies\":" + tc + ","
+                                                    + "\"completed\":" + tcomp + ","
+                                                    + "\"productionRatio\":" + tprod.ToString(CultureInfo.InvariantCulture) + ","
+                                                    + "\"totalPass\":" + ttp + ","
+                                                    + "\"maxPass\":" + tmp
+                                                    + "}";
+                                                txtList.Add(item);
                                             }
                                         }
                                     }
 
-                                    // Fallback por nombre si no hubo coincidencia por fecha
-                                    if (!hasTxt && !string.IsNullOrEmpty(dtDash))
+                                    if (txtList.Count == 0 && !string.IsNullOrEmpty(dtDash))
                                     {
-                                        using (var cmd = new SQLiteCommand("SELECT * FROM logtxt WHERE JobName LIKE '%" + safeName + "%' ORDER BY StartTime DESC LIMIT 1", conn))
+                                        using (var cmd = new SQLiteCommand("SELECT * FROM logtxt WHERE JobName LIKE '%" + safeName + "%' ORDER BY StartTime ASC", conn))
                                         {
                                             using (var r = cmd.ExecuteReader())
                                             {
-                                                if (r.Read())
+                                                while (r.Read())
                                                 {
-                                                    hasTxt = true;
-                                                    txtJobName = r["JobName"].ToString();
-                                                    txtStart = r["StartTime"].ToString();
-                                                    txtEnd = r["EndTime"].ToString();
-                                                    txtMode = r["Mode"].ToString();
-                                                    double.TryParse(r["Width"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out txtW);
-                                                    double.TryParse(r["Length"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out txtL);
-                                                    double.TryParse(r["ProductionRatio"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out txtProd);
-                                                    try { txtCopies = Convert.ToInt32(r["Copies"]); } catch {}
-                                                    try { txtCompleted = Convert.ToInt32(r["Completed"]); } catch {}
-                                                    try { txtTPass = Convert.ToInt32(r["TotalPass"]); } catch {}
-                                                    try { txtMPass = Convert.ToInt32(r["MaxPass"]); } catch {}
+                                                    string tJn = r["JobName"].ToString();
+                                                    string tSt = r["StartTime"].ToString();
+                                                    string tEd = r["EndTime"].ToString();
+                                                    string tMd = r["Mode"].ToString();
+                                                    double tw = 0, tl = 0, tprod = 0;
+                                                    double.TryParse(r["Width"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out tw);
+                                                    double.TryParse(r["Length"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out tl);
+                                                    double.TryParse(r["ProductionRatio"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out tprod);
+                                                    int tc = 1, tcomp = 0, ttp = 0, tmp = 0;
+                                                    try { tc = Convert.ToInt32(r["Copies"]); } catch {}
+                                                    try { tcomp = Convert.ToInt32(r["Completed"]); } catch {}
+                                                    try { ttp = Convert.ToInt32(r["TotalPass"]); } catch {}
+                                                    try { tmp = Convert.ToInt32(r["MaxPass"]); } catch {}
+
+                                                    string item = "{"
+                                                        + "\"jobName\":\"" + HttpUtility.JavaScriptStringEncode(tJn) + "\","
+                                                        + "\"startTime\":\"" + HttpUtility.JavaScriptStringEncode(tSt) + "\","
+                                                        + "\"endTime\":\"" + HttpUtility.JavaScriptStringEncode(tEd) + "\","
+                                                        + "\"mode\":\"" + HttpUtility.JavaScriptStringEncode(tMd) + "\","
+                                                        + "\"width\":" + tw.ToString(CultureInfo.InvariantCulture) + ","
+                                                        + "\"length\":" + tl.ToString(CultureInfo.InvariantCulture) + ","
+                                                        + "\"copies\":" + tc + ","
+                                                        + "\"completed\":" + tcomp + ","
+                                                        + "\"productionRatio\":" + tprod.ToString(CultureInfo.InvariantCulture) + ","
+                                                        + "\"totalPass\":" + ttp + ","
+                                                        + "\"maxPass\":" + tmp
+                                                        + "}";
+                                                    txtList.Add(item);
                                                 }
                                             }
                                         }
@@ -391,63 +418,86 @@ namespace RipLogViewer
                                 }
                                 catch { }
 
-                                // 3. TF Task
-                                bool hasTf = false;
-                                string tfJobName = "", tfStart = "", tfEnd = "", tfMode = "", tfImgPath = "";
-                                double tfW = 0, tfL = 0, tfProd = 0;
-                                int tfCompleted = 0;
-
+                                // 3. TF Tasks List
+                                var tfList = new List<string>();
                                 try
                                 {
                                     string tfQuery = "";
                                     if (!string.IsNullOrEmpty(dtDash))
                                     {
-                                        tfQuery = "SELECT * FROM historialtf WHERE (FechaPrt LIKE '" + dtDash + "%' OR FechaPrt LIKE '" + dtSlash + "%' OR FechaPrt LIKE '%" + dtDisp + "%' OR StartTime LIKE '" + dtDash + "%' OR StartTime LIKE '" + dtSlash + "%' OR StartTime LIKE '%" + dtDisp + "%') ORDER BY rowid DESC LIMIT 1";
+                                        tfQuery = "SELECT * FROM historialtf WHERE (FechaPrt LIKE '" + dtDash + "%' OR FechaPrt LIKE '" + dtSlash + "%' OR FechaPrt LIKE '%" + dtDisp + "%' OR StartTime LIKE '" + dtDash + "%' OR StartTime LIKE '" + dtSlash + "%' OR StartTime LIKE '%" + dtDisp + "%') ORDER BY StartTime ASC";
                                     }
                                     else
                                     {
-                                        tfQuery = "SELECT * FROM historialtf WHERE JobName LIKE '%" + safeName + "%' ORDER BY StartTime DESC LIMIT 1";
+                                        tfQuery = "SELECT * FROM historialtf WHERE JobName LIKE '%" + safeName + "%' ORDER BY StartTime ASC";
                                     }
 
                                     using (var cmd = new SQLiteCommand(tfQuery, conn))
                                     {
                                         using (var r = cmd.ExecuteReader())
                                         {
-                                            if (r.Read())
+                                            while (r.Read())
                                             {
-                                                hasTf = true;
-                                                tfJobName = r["JobName"].ToString();
-                                                tfStart = r["StartTime"].ToString();
-                                                tfEnd = r["EndTime"].ToString();
-                                                tfMode = r["Mode"].ToString();
-                                                tfImgPath = r["LocalImagePath"].ToString();
-                                                double.TryParse(r["Width"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out tfW);
-                                                double.TryParse(r["Length"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out tfL);
-                                                double.TryParse(r["ProductionRatio"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out tfProd);
-                                                try { tfCompleted = Convert.ToInt32(r["Completed"]); } catch {}
+                                                string fJn = r["JobName"].ToString();
+                                                string fSt = r["StartTime"].ToString();
+                                                string fEd = r["EndTime"].ToString();
+                                                string fMd = r["Mode"].ToString();
+                                                string fImg = r["LocalImagePath"].ToString();
+                                                double fw = 0, fl = 0, fprod = 0;
+                                                double.TryParse(r["Width"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out fw);
+                                                double.TryParse(r["Length"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out fl);
+                                                double.TryParse(r["ProductionRatio"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out fprod);
+                                                int fcomp = 0;
+                                                try { fcomp = Convert.ToInt32(r["Completed"]); } catch {}
+
+                                                string item = "{"
+                                                    + "\"jobName\":\"" + HttpUtility.JavaScriptStringEncode(fJn) + "\","
+                                                    + "\"startTime\":\"" + HttpUtility.JavaScriptStringEncode(fSt) + "\","
+                                                    + "\"endTime\":\"" + HttpUtility.JavaScriptStringEncode(fEd) + "\","
+                                                    + "\"mode\":\"" + HttpUtility.JavaScriptStringEncode(fMd) + "\","
+                                                    + "\"width\":" + fw.ToString(CultureInfo.InvariantCulture) + ","
+                                                    + "\"length\":" + fl.ToString(CultureInfo.InvariantCulture) + ","
+                                                    + "\"completed\":" + fcomp + ","
+                                                    + "\"productionRatio\":" + fprod.ToString(CultureInfo.InvariantCulture) + ","
+                                                    + "\"localImagePath\":\"" + HttpUtility.JavaScriptStringEncode(fImg) + "\""
+                                                    + "}";
+                                                tfList.Add(item);
                                             }
                                         }
                                     }
 
-                                    // Fallback por nombre si no hubo coincidencia por fecha
-                                    if (!hasTf && !string.IsNullOrEmpty(dtDash))
+                                    if (tfList.Count == 0 && !string.IsNullOrEmpty(dtDash))
                                     {
-                                        using (var cmd = new SQLiteCommand("SELECT * FROM historialtf WHERE JobName LIKE '%" + safeName + "%' ORDER BY StartTime DESC LIMIT 1", conn))
+                                        using (var cmd = new SQLiteCommand("SELECT * FROM historialtf WHERE JobName LIKE '%" + safeName + "%' ORDER BY StartTime ASC", conn))
                                         {
                                             using (var r = cmd.ExecuteReader())
                                             {
-                                                if (r.Read())
+                                                while (r.Read())
                                                 {
-                                                    hasTf = true;
-                                                    tfJobName = r["JobName"].ToString();
-                                                    tfStart = r["StartTime"].ToString();
-                                                    tfEnd = r["EndTime"].ToString();
-                                                    tfMode = r["Mode"].ToString();
-                                                    tfImgPath = r["LocalImagePath"].ToString();
-                                                    double.TryParse(r["Width"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out tfW);
-                                                    double.TryParse(r["Length"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out tfL);
-                                                    double.TryParse(r["ProductionRatio"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out tfProd);
-                                                    try { tfCompleted = Convert.ToInt32(r["Completed"]); } catch {}
+                                                    string fJn = r["JobName"].ToString();
+                                                    string fSt = r["StartTime"].ToString();
+                                                    string fEd = r["EndTime"].ToString();
+                                                    string fMd = r["Mode"].ToString();
+                                                    string fImg = r["LocalImagePath"].ToString();
+                                                    double fw = 0, fl = 0, fprod = 0;
+                                                    double.TryParse(r["Width"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out fw);
+                                                    double.TryParse(r["Length"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out fl);
+                                                    double.TryParse(r["ProductionRatio"].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out fprod);
+                                                    int fcomp = 0;
+                                                    try { fcomp = Convert.ToInt32(r["Completed"]); } catch {}
+
+                                                    string item = "{"
+                                                        + "\"jobName\":\"" + HttpUtility.JavaScriptStringEncode(fJn) + "\","
+                                                        + "\"startTime\":\"" + HttpUtility.JavaScriptStringEncode(fSt) + "\","
+                                                        + "\"endTime\":\"" + HttpUtility.JavaScriptStringEncode(fEd) + "\","
+                                                        + "\"mode\":\"" + HttpUtility.JavaScriptStringEncode(fMd) + "\","
+                                                        + "\"width\":" + fw.ToString(CultureInfo.InvariantCulture) + ","
+                                                        + "\"length\":" + fl.ToString(CultureInfo.InvariantCulture) + ","
+                                                        + "\"completed\":" + fcomp + ","
+                                                        + "\"productionRatio\":" + fprod.ToString(CultureInfo.InvariantCulture) + ","
+                                                        + "\"localImagePath\":\"" + HttpUtility.JavaScriptStringEncode(fImg) + "\""
+                                                        + "}";
+                                                    tfList.Add(item);
                                                 }
                                             }
                                         }
@@ -455,39 +505,8 @@ namespace RipLogViewer
                                 }
                                 catch { }
 
-                                 string txtJson = "null";
-                                if (hasTxt)
-                                {
-                                    txtJson = "{"
-                                        + "\"jobName\":\"" + HttpUtility.JavaScriptStringEncode(txtJobName) + "\","
-                                        + "\"startTime\":\"" + HttpUtility.JavaScriptStringEncode(txtStart) + "\","
-                                        + "\"endTime\":\"" + HttpUtility.JavaScriptStringEncode(txtEnd) + "\","
-                                        + "\"mode\":\"" + HttpUtility.JavaScriptStringEncode(txtMode) + "\","
-                                        + "\"width\":" + txtW.ToString(CultureInfo.InvariantCulture) + ","
-                                        + "\"length\":" + txtL.ToString(CultureInfo.InvariantCulture) + ","
-                                        + "\"copies\":" + txtCopies + ","
-                                        + "\"completed\":" + txtCompleted + ","
-                                        + "\"productionRatio\":" + txtProd.ToString(CultureInfo.InvariantCulture) + ","
-                                        + "\"totalPass\":" + txtTPass + ","
-                                        + "\"maxPass\":" + txtMPass
-                                        + "}";
-                                }
-
-                                string tfJson = "null";
-                                if (hasTf)
-                                {
-                                    tfJson = "{"
-                                        + "\"jobName\":\"" + HttpUtility.JavaScriptStringEncode(tfJobName) + "\","
-                                        + "\"startTime\":\"" + HttpUtility.JavaScriptStringEncode(tfStart) + "\","
-                                        + "\"endTime\":\"" + HttpUtility.JavaScriptStringEncode(tfEnd) + "\","
-                                        + "\"mode\":\"" + HttpUtility.JavaScriptStringEncode(tfMode) + "\","
-                                        + "\"width\":" + tfW.ToString(CultureInfo.InvariantCulture) + ","
-                                        + "\"length\":" + tfL.ToString(CultureInfo.InvariantCulture) + ","
-                                        + "\"completed\":" + tfCompleted + ","
-                                        + "\"productionRatio\":" + tfProd.ToString(CultureInfo.InvariantCulture) + ","
-                                        + "\"localImagePath\":\"" + HttpUtility.JavaScriptStringEncode(tfImgPath) + "\""
-                                        + "}";
-                                }
+                                string txtLogsJson = "[" + string.Join(",", txtList.ToArray()) + "]";
+                                string tfTasksJson = "[" + string.Join(",", tfList.ToArray()) + "]";
 
                                 jsonResult = "{"
                                     + "\"machineName\":\"" + HttpUtility.JavaScriptStringEncode(machineName) + "\","
@@ -497,8 +516,10 @@ namespace RipLogViewer
                                     + "\"width\":" + ripWidth.ToString(CultureInfo.InvariantCulture) + ","
                                     + "\"length\":" + ripLength.ToString(CultureInfo.InvariantCulture) + ","
                                     + "\"copias\":" + ripCopias + ","
-                                    + "\"txtLog\":" + txtJson + ","
-                                    + "\"tfTask\":" + tfJson
+                                    + "\"txtLog\":" + (txtList.Count > 0 ? txtList[txtList.Count - 1] : "null") + ","
+                                    + "\"tfTask\":" + (tfList.Count > 0 ? tfList[tfList.Count - 1] : "null") + ","
+                                    + "\"txtLogs\":" + txtLogsJson + ","
+                                    + "\"tfTasks\":" + tfTasksJson
                                     + "}";
                             }
                         }
